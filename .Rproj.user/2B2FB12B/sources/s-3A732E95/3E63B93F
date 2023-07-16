@@ -1,0 +1,29 @@
+{
+    "id": "3E63B93F",
+    "path": "C:/Users/clair/Desktop/ubuntu_app/app.R",
+    "project_path": "app.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1685732645416.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "86,120",
+        "scrollLine": "0",
+        "docOutlineVisible": "1",
+        "rmdVisualCollapsedChunks": "",
+        "docOutlineSize": "18"
+    },
+    "folds": "303|36|308|2|\n309|36|314|2|\n315|39|320|2|\n322|39|327|2|\n328|37|333|2|\n334|37|339|2|\n",
+    "lastKnownWriteTime": 1686678423,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1686678423178,
+    "read_only": false,
+    "read_only_alternatives": []
+}

@@ -1,0 +1,1 @@
+[2,"Fehler in file(filename, \"r\", encoding = encoding) : \r\n  kann Verbindung nicht öffnen\r\nRuft auf: source -> file\r\nZusätzlich: Warnmeldung:\r\nIn file(filename, \"r\", encoding = encoding) :\r\n  kann Datei 'renv/activate.R' nicht öffnen: No such file or directory\r\nAusführung angehalten\r\n"]

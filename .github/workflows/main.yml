@@ -1,0 +1,41 @@
+name: Push images to Dockerhub and deploy on Elastic Beanstalk
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build_docker_images:
+    name: build docker images
+    runs-on: ubuntu-latest
+    steps:
+    # clones repository for working with it 
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Docker Login
+        uses: docker/login-action@v1.8.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          logout: true
+
+      - name: Build Server image
+        run: docker build -t cpg3/salzbike .
+
+      - name: Tag the Image
+        run: docker tag cpg3/salzbike cpg3/salzbike:latest
+
+      - name: Push to dockerhub
+        run: docker push cpg3/salzbike
+
+      - name: Deploy to EB
+        uses: einaregilsson/beanstalk-deploy@v14
+        with:
+         aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+         aws_secret_key: ${{ secrets.AWS_SECRET_KEY }}
+         application_name: salzbike
+         environment_name: salzbike-env
+         version_label: ${{ steps.generate-version.outputs.version }}
+         region: eu-central-1
