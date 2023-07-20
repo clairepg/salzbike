@@ -3,21 +3,27 @@ FROM r-base
 
 # system libraries of general use
 ## install debian packages
-RUN apt-get update && apt-get upgrade -y
-
-RUN apt-get update -qq && apt-get -y --no-install-recommends install \
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y \
     libxml2-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
     libcairo2-dev \
     libsqlite3-dev \
     libmariadbd-dev \
     libpq-dev \
     libssh2-1-dev \
     unixodbc-dev \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    libudunits2-dev
-RUN apt-get update && apt-get remove -y libmariadb-dev && apt-get install -y libgdal-dev libgeos-dev libproj-dev
-
+    libudunits2-dev \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
+    libpoppler-cpp-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libfontconfig1-dev \
+    libjpeg-dev \
+    libpng-dev
 
 ## update system libraries
 RUN apt-get update && \
@@ -25,11 +31,11 @@ RUN apt-get update && \
     apt-get clean
 
 # Set the working directory
-WORKDIR /salzbike_eb
+WORKDIR /salzbike
 
 # Copy necessary files
-COPY app.R /salzbike_eb/app.R
-COPY data /salzbike_eb/data
+COPY app.R /salzbike/app.R
+COPY data /salzbike/data
 
 # Install R packages
 RUN Rscript -e 'install.packages("tmap", dependencies = TRUE) ;     if (!library(tmap, logical.return=TRUE)) quit(status=10)'
@@ -53,5 +59,5 @@ EXPOSE 80
 ENV SHINY_LOGS_STDERR=1
 
 # Run the app on container start
-CMD ["R", "-e", "shiny::runApp('/salzbike_eb', host = '0.0.0.0', port = 80)"]
+CMD ["R", "-e", "shiny::runApp('/salzbike', host = '0.0.0.0', port = 80)"]
 
