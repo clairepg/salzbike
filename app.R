@@ -16,20 +16,27 @@ library(RColorBrewer)
 # load data ---------------------------------------------------------------
 #setwd("C:/Users/clair/Desktop/ubuntu_salzbike/data")
 
-trips_bikers <- read.csv("data/Totaltrips_Bikers_studyarea.csv")
-trips_hikers <- read.csv("data/Totaltrips_Hikers_studyarea.csv")
-km <- read.csv2("data/km_studyarea.csv")
+#trips_bikers <- read.csv("data/Totaltrips_Bikers_studyarea.csv")
+#trips_hikers <- read.csv("data/Totaltrips_Hikers_studyarea.csv")
+trips_bikers <- read.csv("data/Bikingdata_Bundesland.csv")
+trips_hikers <- read.csv("data/Hikingdata_Bundesland.csv")
+trips_hikers$forward_13_19_people_count <- NULL
+trips_hikers$forward_people_count <- NULL
+#km <- read.csv2("data/km_studyarea.csv")
 
 trips_bikers <- rename(trips_bikers, total_bikers = total_trips)
 trips_hikers <- rename(trips_hikers, total_hikers = total_trips)
 
 trips_bikers <- rename(trips_bikers, edgeUID = edgeuid)
 trips_hikers <- rename(trips_hikers, edgeUID = edgeuid)
+trips_bikers$edgeUID <- as.integer(trips_bikers$edgeUID)
+trips_hikers$edgeUID <- as.integer(trips_hikers$edgeUID)
 
 hours_bikers <- read.csv("data/Hourlystats_bikers_studyarea.csv") 
+hours_bikers <- na.omit(hours_bikers)
 hours_bikers$hour <- as.factor(hours_bikers$hour)
 hours_hikers <- read.csv("data/Hourlystats_hikers_studyarea.csv") 
-
+hours_hikers <- na.omit(hours_hikers)
 weekdays_bikers <- read.csv("data/Weekdaystats_bikers_studyarea.csv") 
 weekdays_hikers <- read.csv("data/Weekdaystats_hikers_studyarea.csv") 
 
@@ -81,119 +88,113 @@ plot_month_hikers <- ggplot(months_hikers, aes(x = month)) +
 # 1.2 WFS request --------------------------------------------------------------------
 # Create the WFS request URL
 # Define the URL and layer name
-wfs_url <- "https://sdiservices.zgis.at/geoserver/salzbike/ows"
-layer_name <- "salzbike:FilteredWegenetz_studyarea"
+#wfs_url <- "https://sdiservices.zgis.at/geoserver/salzbike/ows"
+#layer_name <- "salzbike:FilteredWegenetz_studyarea"
 #define output format of wfs request
-output_format <- "application/json"
+#output_format <- "application/json"
 
 # for testing set max features to 200 
 # for deploying set to 60000? check again 
-wfs_request <- paste0(wfs_url, "?service=WFS&version=1.0.0&request=GetFeature&typeName=", layer_name, "&maxFeatures=20000&outputFormat=", output_format)
+#wfs_request <- paste0(wfs_url, "?service=WFS&version=1.0.0&request=GetFeature&typeName=", layer_name, "&maxFeatures=20000&outputFormat=", output_format)
 
 # Function to retrieve WFS data and convert to sf object
-getWFSData <- function() {
+#getWFSData <- function() {
   # Fetch the WFS data as GeoJSON
-  wfs_response <- GET(wfs_request)
-  wfs_geojson <- content(wfs_response, "text")
+ # wfs_response <- GET(wfs_request)
+  #wfs_geojson <- content(wfs_response, "text")
   
   # Convert the GeoJSON to an sf object
-  wfs_data <- st_read(wfs_geojson)
-  wfs_data$geometry <- st_zm(wfs_data$geometry)
+  #wfs_data <- st_read(wfs_geojson)
+ # wfs_data$geometry <- st_zm(wfs_data$geometry)
   # add kilometer column 
-  wfs_data <- left_join(wfs_data, km, by = "edgeUID")
+ # wfs_data <- left_join(wfs_data, km, by = "edgeUID")
   
-  return(wfs_data)
-}
+ # return(wfs_data)
+#}
+#-------------------------------------------
+trails <- st_read("data/Wegenetz/wegenetz.shp")
+trails$geometry <- st_zm(trails$geometry)
+trails$edgeUID <- as.integer(trails$edgeUID)
+trails$Max_Slope <-NULL
+trails$Avg_Slope <- NULL
+trails$height_diff <- trails$Z_Max - trails$Z_Min
+trails$km <- trails$Shape_Leng
+trails$Shape_Leng <- NULL
+# get unique edgeUIDs from hikers and bikers 
+#unique_edgeUIDs <- unique(c(trips_hikers$edgeUID, trips_bikers$edgeUID))
+#trails <- trails %>% filter(edgeUID %in% unique_edgeUIDs)
+
+trails <- trails[1:8000, ]
+#trails_test$edgeUID <- as.integer(trails_test$edgeUID)
 
 # UI ---------------------------------------------------------------------------------
-ui <- fluidPage(theme = shinytheme("slate"),
-                tags$head(
-                  tags$style(HTML("
-                    body, html {
-                      height: 100vh;
-                      margin: 0;
-                      padding: 0;
-                      overflow: hidden;
-                    }
-                    .shiny-output-area {
-                      height: 100%;
-                    }
-                  "))
-                ),
-                mainPanel(
-                  leafletOutput("map", width = "100%", height = "100vh")
-                ),
-                div(style = "padding: 10px;", 
-                    absolutePanel(top = 10, 
-                                  right = 0, 
-                                  style = "z-index:500;",
-                                  textOutput("clicked_segment"),
-                                  fluidRow(
-                                    column(6, 
-                                           checkboxInput("km_checkbox", 
-                                                         "Filter for the top km",
-                                                         value = FALSE)),
-                                    column(6, 
-                                           checkboxInput("steepness_checkbox", 
-                                                         "Filter for trail steepness",
-                                                         value = FALSE)),
-                                    column(6, 
-                                           sliderInput("km_filter",
-                                                       "Filter by Kilometer",
-                                                       min = 0, max = 100, value = c(0, 500),
-                                                       step = 5))
-                                  ),
-                                  fluidRow(
-                                    column(6, plotOutput("hour_plot_bikers", height = "200")),
-                                    column(6, plotOutput("hour_plot_hikers", height = "200"))
-                                  ),
-                                  fluidRow(
-                                    column(6, plotOutput("weekday_plot_bikers", height = "200px")),
-                                    column(6, plotOutput("weekday_plot_hikers", height = "200px"))
-                                  ),
-                                  fluidRow(
-                                    column(6, plotOutput("month_plot_bikers", height = "200px")),
-                                    column(6, plotOutput("month_plot_hikers", height = "200px"))
-                                  )
-                    )
-                )
+ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
+                 tags$head(
+                   tags$link(rel = "stylesheet", type = "text/css", href = "styling.css")
+                 ),
+  tabPanel("Map", 
+           sidebarLayout(
+             sidebarPanel(
+               textOutput("clicked_segment"),
+               textOutput("Hoehe"),
+               checkboxInput("km_checkbox", 
+                             "Filter for the top km",
+                             value = FALSE),
+               checkboxInput("steepness_checkbox", 
+                             "Filter for altitude",
+                             value = FALSE),
+               sliderInput("km_filter",
+                           "Filter by Kilometer",
+                           min = 0, max = 100, value = c(0, 500),
+                           step = 5),
+               fluidRow(
+                 column(5,  plotOutput("hour_plot_bikers", height = "20%")),
+                 column(5, plotOutput("hour_plot_hikers", height = "20%"))
+               ),
+               fluidRow(
+                 column(5,  plotOutput("weekday_plot_bikers", height = "20%")),
+                 column(5, plotOutput("weekday_plot_hikers", height = "20%"))
+               ),
+               fluidRow(
+                 column(5, plotOutput("month_plot_bikers", height = "100%")),
+                 column(5, plotOutput("month_plot_hikers", height = "100%"))
+               ),
+             ),
+             
+             mainPanel(
+               leafletOutput("map", width = "100%", height = "100vh")
+             )
+             )
+           ),
+  tabPanel("Info", "Information"),
 )
-
-# ... (remaining code)
-
-# ... (remaining code)
-
-
-
-
-
+  
 
 # Server logic -----------------------------------------------------------------
 server <- function(input, output, session) {
   thematic_shiny()
   
-  
-  
-  wfs_data <- reactive(getWFSData())
-  
   # Join trips_bikers with wfs_data based on edgeuid or edgeUID
   joined_bikers <- reactive({
     print("Inside joined_bikers")
-    left_join(wfs_data(), trips_bikers, by = "edgeUID")
+    inner_join(trails, trips_bikers, by = "edgeUID")
   })
   
   # Join trips_hikers with wfs_data based on edgeuid or edgeUID
   joined_hikers <- reactive({
     print("Inside joined_hikers")
-    left_join(wfs_data(), trips_hikers, by = "edgeUID")
+    inner_join(trails, trips_hikers, by = "edgeUID")
   })
+  
   
   # Check if 'total_trips' column exists in joined_data
   total_bikers_exist <- reactive({
     "total_bikers" %in% names(joined_bikers())
+    
   })
   total_hikers_exist <- reactive({
     "total_hikers" %in% names(joined_hikers())
+    
   })
   # color function -------------------------------------------------------
   # Define a custom color palette based on total_trips column
@@ -227,27 +228,37 @@ server <- function(input, output, session) {
       )
     }
   })
+  zoom_level <- reactiveVal(10)  # initialize zoom level to match the initial map zoom
   
   output$map <- renderLeaflet({
     leaflet() %>%
       addProviderTiles("CartoDB.DarkMatter", group = "Carto dark") %>%
       addProviderTiles("CartoDB.Positron", group = "Carto light") %>%
       addTiles(group = "OSM standard") %>%
-      setView(lng = 13.055, lat = 47.8095, zoom = 10) %>%
+      setView(lng = 13.055, lat = 47.8095, zoom = zoom_level()) %>%
       addCircleMarkers(
-        data = st_coordinates(st_startpoint(wfs_data()$geometry)),
-        clusterOptions = markerClusterOptions(), group = "strava" 
+        data = st_coordinates(st_startpoint(trails$geometry)),
+        clusterOptions = markerClusterOptions(), group = "cluster" 
       ) %>% 
       addLayersControl(baseGroups = c("OSM standard", "Carto dark", "Carto light"),
-                       overlayGroups = c("strava", "hikers", "bikers"),
+                       overlayGroups = c("hikers", "bikers", "cluster"),
                        options = layersControlOptions(collapsed = FALSE,
                                                       defaultBase = "Carto dark"))
   })
   
-  observeEvent(input$map_zoom, {
-    zoom <- input$map_zoom
+  observe({
+    # Update zoom level when input$map_zoom changes
+    isolate({
+      if (!is.null(input$map_zoom)) {
+        zoom_level(input$map_zoom)
+      }
+    })
+    
+    zoom <- zoom_level()  # get current zoom level from reactive variable
+    print(zoom)
     leafletProxy("map") %>%
       clearMarkers()
+    
     
     if (zoom >= 12) {
       leafletProxy("map") %>%
@@ -261,7 +272,9 @@ server <- function(input, output, session) {
                      layerId = ~edgeUID,
                      popup = ~paste("Edgeuid: ", as.character(edgeUID), "<br>",
                                     "Gesamtanzahl Radfahrten", as.character(total_bikers), "<br>",
-                                    "Segment Laenge (in km):", as.character(km)),
+                                   "Maximale Segment Höhe:", as.character(round(Z_Max)), "<br>",
+                                    "Höhendifferenz (Auflösung 5m²)", as.character(round(height_diff)), "<br>",
+                                    "Segment Laenge (in km):", as.character(round(km))),
                      highlightOptions = highlightOptions(color = "yellow",
                                                          weight = 6)
         ) %>% 
@@ -272,7 +285,9 @@ server <- function(input, output, session) {
                      layerId = ~edgeUID,
                      popup = ~paste("Edgeuid: ", as.character(edgeUID), "<br>",
                                     "Gesamtanzahl Wanderungen:", as.character(total_hikers), "<br>",
-                                    "Segment Laenge (in km):", as.character(km)),
+                                   "Maximale Segment Höhe:", as.character(round(Z_Max)), "<br>",
+                                    "Höhendifferenz (Auflösung 5m²)", as.character(round(height_diff)), "<br>",
+                                    "Segment Laenge (in km):", as.character(round(km))),
                      highlightOptions = highlightOptions(color = "yellow",
                                                          weight = 6))
       
@@ -280,11 +295,11 @@ server <- function(input, output, session) {
       leafletProxy("map") %>%
         clearShapes() %>%
         addCircleMarkers(
-          data = st_coordinates(st_startpoint(wfs_data()$geometry)),
-          clusterOptions = markerClusterOptions(), group = "strava"
+          data = st_coordinates(st_startpoint(trails$geometry)),
+          clusterOptions = markerClusterOptions(), group = "cluster"
         )
     }
-  })
+    })
   
   # Click Event: add plots -----------------------------------
   click_status <- reactiveVal(0)
@@ -311,7 +326,6 @@ server <- function(input, output, session) {
   # Filter dataframes for distribution of edgeuid 
   selected_hour_bikers <- reactive({
     req(input$map_shape_click)
-    selected_data <- filter(hours_bikers, edgeuid == as.integer(input$map_shape_click$id))
     print(selected_data)
     selected_data
   })
@@ -495,8 +509,8 @@ server <- function(input, output, session) {
         clearShapes() %>%
         clearMarkerClusters() %>%
         addCircleMarkers(
-          data = st_coordinates(st_startpoint(wfs_data()$geometry)),
-          clusterOptions = markerClusterOptions(), group = "strava"
+          data = st_coordinates(st_startpoint(trails$geometry)),
+          clusterOptions = markerClusterOptions(), group = "cluster"
         )
     }
   })

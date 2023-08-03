@@ -1,0 +1,15 @@
+.shiny-input-container:not(.shiny-input-container-inline) {
+    /* width: 300px; */
+    max-width: 100%;
+}
+
+
+body, html {
+             height: 100vh;
+             margin: 0;
+            padding: 0;
+            overflow: hidden;
+                    }
+                    .shiny-output-area {
+                      height: 100%;
+                    }
