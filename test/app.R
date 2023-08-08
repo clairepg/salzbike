@@ -236,7 +236,7 @@ server <- function(input, output, session) {
       addProviderTiles("CartoDB.DarkMatter", group = "Carto dark") %>%
       addProviderTiles("CartoDB.Positron", group = "Carto light") %>%
       addTiles(group = "OSM standard") %>%
-      setView(lng = 13.055, lat = 47.8095, zoom = 10) %>%
+      setView(lng = 13.055, lat = 47.8095, zoom = zoom_level()) %>%
       addCircleMarkers(
         data = st_coordinates(st_startpoint(trails$geometry)),
         clusterOptions = markerClusterOptions(), group = "cluster" 
@@ -250,10 +250,9 @@ server <- function(input, output, session) {
   observe({
     # Update zoom level when input$map_zoom changes
     
-    if (!is.null(input$map_zoom)) {
-      
-      zoom <- input$map_zoom
-      print(zoom)
+    
+    zoom <- input$map_zoom # get current zoom level from reactive variable
+    print(zoom)
     
     
     if (zoom >= 12) {
@@ -295,7 +294,6 @@ server <- function(input, output, session) {
           clusterOptions = markerClusterOptions(), group = "cluster"
         )
     }
-      }
   })
   
   # Click Event: add plots -----------------------------------
@@ -446,7 +444,7 @@ server <- function(input, output, session) {
   # km filter function 
   filtered_polylines <- reactive({
     if (input$km_checkbox) {
-      total_km <- sum(trails$km)
+      total_km <- sum(km$km)
       km_filter <- input$km_filter
       
       if (km_filter[2] >= total_km) {
