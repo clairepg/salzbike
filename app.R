@@ -23,7 +23,7 @@ library(RColorBrewer)
 trips_bikers <- read.csv("data/SegmentStats_Bikers_Bundesland.csv")
 trips_hikers <- read.csv("data/SegmentStats_Hikers_Bundesland.csv")
 
-#km <- read.csv2("data/km_studyarea.csv")
+km <- read.csv2("data/km_Bundesland.csv")
 
 trips_bikers <- rename(trips_bikers, total_bikers = total_trips)
 trips_hikers <- rename(trips_hikers, total_hikers = total_trips)
@@ -32,6 +32,10 @@ trips_bikers <- rename(trips_bikers, edgeUID = edgeuid)
 trips_hikers <- rename(trips_hikers, edgeUID = edgeuid)
 trips_bikers$edgeUID <- as.integer(trips_bikers$edgeUID)
 trips_hikers$edgeUID <- as.integer(trips_hikers$edgeUID)
+
+
+
+
 
 hours_bikers <- read.csv("data/Hourlystats_bikers_Bundesland.csv") 
 hours_bikers <- na.omit(hours_bikers)
@@ -113,7 +117,7 @@ plot_month_hikers <- ggplot(months_hikers, aes(x = month)) +
 # return(wfs_data)
 #}
 #-------------------------------------------
-trails <- st_read("data/Wegenetz/wegenetz.shp")
+trails <- st_read("data/Wegenetz/wegenetz_update.shp")
 trails$geometry <- st_zm(trails$geometry)
 trails$edgeUID <- as.integer(trails$edgeUID)
 trails$Max_Slope <-NULL
@@ -175,6 +179,9 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
 server <- function(input, output, session) {
   thematic_shiny()
   
+ # observe({
+   # print(input$km_filter[2])
+ # })
   # Join trips_bikers with wfs_data based on edgeuid or edgeUID
   joined_bikers <- reactive({
     print("Inside joined_bikers")
@@ -230,7 +237,7 @@ server <- function(input, output, session) {
     }
   })
   #zoom_level <- reactiveVal(10)  # initialize zoom level to match the initial map zoom
-  
+  # Zoom levels ----------------------------------------------------------------
   output$map <- renderLeaflet({
     leaflet() %>%
       addProviderTiles("CartoDB.DarkMatter", group = "Carto dark") %>%
@@ -253,7 +260,7 @@ server <- function(input, output, session) {
     if (!is.null(input$map_zoom)) {
       
       zoom <- input$map_zoom
-      print(zoom)
+      print("zoom: ", zoom)
     
     
     if (zoom >= 12) {
@@ -323,45 +330,47 @@ server <- function(input, output, session) {
   # Filter dataframes for distribution of edgeuid 
   selected_hour_bikers <- reactive({
     req(input$map_shape_click)
-    print(selected_data)
+    selected_data <- filter(hours_bikers, edgeuid == as.integer(input$map_shape_click$id))
+    
+   # print(selected_data)
     selected_data
   })
   selected_hour_hikers <- reactive({
     req(input$map_shape_click)
     selected_data <- filter(hours_hikers, edgeuid == as.integer(input$map_shape_click$id))
-    print(selected_data)
+   # print(selected_data)
     selected_data
   })
   selected_weekday_bikers <- reactive({
     req(input$map_shape_click)
     selected_data <- filter(weekdays_bikers, edgeuid == as.integer(input$map_shape_click$id))
-    print(selected_data)
+   # print(selected_data)
     selected_data
   })
   
   selected_weekday_hikers <- reactive({
     req(input$map_shape_click)
     selected_data <- filter(weekdays_hikers, edgeuid == as.integer(input$map_shape_click$id))
-    print(selected_data)
+  #  print(selected_data)
     selected_data
   })
   selected_month_bikers <- reactive({
     req(input$map_shape_click)
     selected_data <- filter(months_bikers, edgeuid == as.integer(input$map_shape_click$id))
-    print(selected_data)
+   # print(selected_data)
     selected_data
   })
   selected_month_hikers <- reactive({
     req(input$map_shape_click)
     selected_data <- filter(months_hikers, edgeuid == as.integer(input$map_shape_click$id))
-    print(selected_data)
+   # print(selected_data)
     selected_data
   })
   
   
   output$hour_plot_bikers <- renderPlot({
     if (click_status() == 0) {
-      print("Render overall hour plot for bikers")
+     # print("Render overall hour plot for bikers")
       plot_hour_bikers
     } else {
       req(selected_hour_bikers())
@@ -374,7 +383,7 @@ server <- function(input, output, session) {
   
   output$hour_plot_hikers <- renderPlot({
     if (is.null(input$map_shape_click)) {
-      print("Render overall hour plot for bikers")
+      #print("Render overall hour plot for bikers")
       plot_hour_hikers
       # ggplot(overall_hour_bikers, ...)
     } else {
@@ -388,7 +397,7 @@ server <- function(input, output, session) {
   
   output$weekday_plot_bikers <- renderPlot({
     if (is.null(input$map_shape_click)) {
-      print("Render overall weekday plot for bikers")
+     # print("Render overall weekday plot for bikers")
       plot_weekday_bikers
       # ggplot(overall_hour_bikers, ...)
     } else {
@@ -402,7 +411,7 @@ server <- function(input, output, session) {
   
   output$weekday_plot_hikers <- renderPlot({
     if (is.null(input$map_shape_click)) {
-      print("Render overall weekday plot for hikers")
+     # print("Render overall weekday plot for hikers")
       plot_weekday_hikers
       # ggplot(overall_hour_bikers, ...)
     } else {
@@ -416,7 +425,7 @@ server <- function(input, output, session) {
   
   output$month_plot_bikers <- renderPlot({
     if (is.null(input$map_shape_click)) {
-      print("Render overall month plot for bikers")
+     # print("Render overall month plot for bikers")
       plot_month_bikers
       # ggplot(overall_hour_bikers, ...)
     } else {
@@ -430,7 +439,7 @@ server <- function(input, output, session) {
   
   output$month_plot_hikers <- renderPlot({
     if (is.null(input$map_shape_click)) {
-      print("Render overall month plot for hikers")
+     # print("Render overall month plot for hikers")
       plot_month_hikers
       # ggplot(overall_hour_bikers, ...)
     } else {
@@ -442,45 +451,47 @@ server <- function(input, output, session) {
     }
   }, height = 200, width = 200)
   
-  # -----------------------------------------------------------------------------
-  # km filter function 
+  # Km Filter-----------------------------------------------------------------------------
+  filtered_bikers <- reactive({
+    joined_bikers() %>%
+  arrange(desc(total_bikers)) %>%
+    mutate(cumulative_km = cumsum(km)) 
+  })
+  
+  filtered_hikers <- reactive({
+    joined_hikers() %>%
+    arrange(desc(total_hikers)) %>%
+    mutate(cumulative_km = cumsum(km))
+  })
+  # initialize km filter variable 
+  km_filter <- NULL
   filtered_polylines <- reactive({
     if (input$km_checkbox) {
-      total_km <- sum(trails$km)
-      km_filter <- input$km_filter
+      print("activate km filter")
+       km_filter <- input$km_filter
+      print(km_filter)
       
-      if (km_filter[2] >= total_km) {
-        return(joined_bikers())
+      top_bikes <- filtered_bikers() %>%
+        filter(cumulative_km <= km_filter[2])
+      
+      top_hikes<- filtered_hikers() %>%
+        filter(cumulative_km <= km_filter[2])
+        return(list(bikers = top_bikes, hikers = top_hikes))
       }
-      
-      filtered_bikers <- joined_bikers() %>%
-        arrange(desc(total_bikers)) %>%
-        mutate(cumulative_km = cumsum(km))
-      
-      filtered_hikers <- joined_hikers() %>%
-        arrange(desc(total_hikers)) %>%
-        mutate(cumulative_km = cumsum(km))
-      
-      filtered_bikers <- filtered_bikers %>%
-        filter(cumulative_km <= km_filter[2])
-      
-      filtered_hikers <- filtered_hikers %>%
-        filter(cumulative_km <= km_filter[2])
-      
-      return(list(bikers = filtered_bikers, hikers = filtered_hikers))
-    } else {
-      return(list(bikers = joined_bikers(), hikers = joined_hikers()))
-    }
   })
   
   observe({
     if (input$km_checkbox) {
-      leafletProxy("map") %>%
+      bikers_data <- filtered_polylines()$bikers
+      hikers_data <- filtered_polylines()$hikers
+      
+      
+        leafletProxy("map") %>%
         clearShapes() %>%
         clearMarkers() %>%
         clearMarkerClusters() %>%
         addPolylines(group = "bikers",
-                     data = filtered_polylines()$bikers,
+                     data = bikers_data,
                      color = if (total_bikers_exist()) { ~color_bike()(total_bikers) },
                      opacity = 0.8,
                      layerId = ~edgeUID,
@@ -488,10 +499,9 @@ server <- function(input, output, session) {
                                     "Gesamtanzahl Radfahrten", as.character(total_bikers), "<br>",
                                     "Segment Laenge (in km):", as.character(km)),
                      highlightOptions = highlightOptions(color = "yellow",
-                                                         weight = 6)
-        ) %>%
+                                                         weight = 6)) %>%
         addPolylines(group = "hikers",
-                     data = filtered_polylines()$hikers,
+                     data = hikers_data,
                      color = if (total_hikers_exist()) { ~color_hike()(total_hikers) },
                      opacity = 0.8,
                      layerId = ~edgeUID,
@@ -501,7 +511,8 @@ server <- function(input, output, session) {
                      highlightOptions = highlightOptions(color = "yellow",
                                                          weight = 6)
         )
-    } else {
+      
+    }else {
       leafletProxy("map") %>%
         clearShapes() %>%
         clearMarkerClusters() %>%
@@ -511,9 +522,10 @@ server <- function(input, output, session) {
         )
     }
   })
+  
   observeEvent(input$map_shape_click, {
     clicked_id <- input$map_shape_click$id
-    print(clicked_id)
+    #print(clicked_id)
   })
   
 }
