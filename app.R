@@ -263,7 +263,7 @@ server <- function(input, output, session) {
       print("zoom: ", zoom)
     
     
-    if (zoom >= 12) {
+    if (zoom >= 11 && !input$km_checkbox) {
       leafletProxy("map") %>%
         clearShapes() %>%
         clearMarkers() %>% 
@@ -294,7 +294,7 @@ server <- function(input, output, session) {
                      highlightOptions = highlightOptions(color = "yellow",
                                                          weight = 6))
       
-    } else if (zoom <= 11) {
+    } else if (zoom <= 10) {
       leafletProxy("map") %>%
         clearShapes() %>%
         addCircleMarkers(
