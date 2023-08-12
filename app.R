@@ -130,7 +130,7 @@ trails$Shape_Leng <- NULL
 #unique_edgeUIDs <- unique(c(trips_hikers$edgeUID, trips_bikers$edgeUID))
 #trails <- trails %>% filter(edgeUID %in% unique_edgeUIDs)
 
-trails <- trails[1:8000, ]
+#trails <- trails[1:8000, ]
 #trails_test$edgeUID <- as.integer(trails_test$edgeUID)
 
 # UI ---------------------------------------------------------------------------------
