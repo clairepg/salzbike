@@ -29,22 +29,7 @@ jobs:
 
       - name: Push to dockerhub
         run: docker push cpg3/salzbike
-      - name: Fetch all tags
-        run: git fetch --tags
-
-      - name: Increment version tag
-        id: versioning
-        run: |
-          # Get the latest version tag
-          LATEST_VERSION=$(git describe --tags --match "salzbike-version-*" | sort -V | tail -n 1)
-          # Extract the number from the version tag
-          NUMBER=$(echo $LATEST_VERSION | grep -o -E '[0-9]+')
-          # Increment the version number
-          NEW_NUMBER=$((NUMBER + 1))
-          # Set the new version tag as output
-          echo "::set-output name=version::salzbike-version-$NEW_NUMBER"
-          echo "New version: salzbike-version-$NEW_NUMBER"
-          
+  
       - name: Deploy to EB
         uses: einaregilsson/beanstalk-deploy@v14
         with:
@@ -53,12 +38,5 @@ jobs:
          application_name: salzbike
          environment_name: Salzbike-env
          region: eu-central-1
-         version_label: ${{ steps.versioning.outputs.version }}
-
-      - name: Push new tag to repository
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git tag ${{ steps.versioning.outputs.version }}
-          git push origin ${{ steps.versioning.outputs.version }}
+         version_label: "salzbike-version-6"
 
