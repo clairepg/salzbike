@@ -130,7 +130,7 @@ trails$Shape_Leng <- NULL
 #unique_edgeUIDs <- unique(c(trips_hikers$edgeUID, trips_bikers$edgeUID))
 #trails <- trails %>% filter(edgeUID %in% unique_edgeUIDs)
 
-#trails <- trails[1:8000, ]
+trails <- trails[1:8000, ]
 #trails_test$edgeUID <- as.integer(trails_test$edgeUID)
 
 # UI ---------------------------------------------------------------------------------
@@ -153,8 +153,13 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
                               checkboxInput("altitude_checkbox", 
                                             "Filter for altitude",
                                             value = FALSE),
-                              sliderInput("altitude_range", "Altitude Range",
-                                          min = 0, max = 3000, value = c(500, 1000)),
+                              sliderInput("altitude_range", "Altitude range",
+                                          min = 0, max = 3660, value = c(500, 1000)),
+                              checkboxInput("diff_checkbox", 
+                                            "Filter for height difference",
+                                            value = FALSE),
+                              sliderInput("diff_range", "Height difference range",
+                                          min = 0, max = 720, value = c(50, 100)),
                               fluidRow(
                                 column(5,  plotOutput("hour_plot_bikers", height = "20%")),
                                 column(5, plotOutput("hour_plot_hikers", height = "20%"))
@@ -188,13 +193,17 @@ server <- function(input, output, session) {
   # Join trips_bikers with wfs_data based on edgeuid or edgeUID
   joined_bikers <- reactive({
     print("Inside joined_bikers")
-    inner_join(trails, trips_bikers, by = "edgeUID")
-  })
+    inner_join(trails, trips_bikers, by = "edgeUID") %>% 
+        arrange(desc(total_bikers)) %>%
+        mutate(cumulative_km = cumsum(km)) 
+    })
   
   # Join trips_hikers with wfs_data based on edgeuid or edgeUID
   joined_hikers <- reactive({
     print("Inside joined_hikers")
-    inner_join(trails, trips_hikers, by = "edgeUID")
+    inner_join(trails, trips_hikers, by = "edgeUID") %>%
+        arrange(desc(total_hikers)) %>%
+        mutate(cumulative_km = cumsum(km))
   })
   
   
@@ -277,11 +286,11 @@ server <- function(input, output, session) {
             opacity = 0.6,
             layerId = ~edgeUID,
             popup = ~paste(
-              "Edgeuid:", as.character(edgeUID), "<br>",
-              "Gesamtanzahl Radfahrten", as.character(total_bikers), "<br>",
-              "Maximale Segment Höhe:", as.character(round(Z_Max)), "<br>",
-              "Höhendifferenz (Auflösung 5m²)", as.character(round(height_diff)), "<br>",
-              "Segment Laenge (in m):", as.character(round(m))
+              "Edgeuid: ", as.character(edgeUID), "<br>",
+              "Gesamtanzahl Radfahrten: ", as.character(total_bikers), "<br>",
+              "Segment Laenge: ", as.character(round(m)), " m<br>",
+              "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
+              "Höhendifferenz: ", as.character(round(height_diff)), " m"
             ),
             highlightOptions = highlightOptions(color = "yellow", weight = 6)
           ) %>%
@@ -292,11 +301,11 @@ server <- function(input, output, session) {
             opacity = 0.6,
             layerId = ~edgeUID,
             popup = ~paste(
-              "Edgeuid:", as.character(edgeUID), "<br>",
-              "Gesamtanzahl Wanderungen:", as.character(total_hikers), "<br>",
-              "Maximale Segment Höhe:", as.character(round(Z_Max)), "<br>",
-              "Höhendifferenz (Auflösung 5m²)", as.character(round(height_diff)), "<br>",
-              "Segment Laenge (in m):", as.character(round(m))
+              "Edgeuid: ", as.character(edgeUID), "<br>",
+              "Gesamtanzahl Wanderungen: ", as.character(total_hikers), "<br>",
+              "Segment Laenge: ", as.character(round(m)), " m<br>",
+              "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
+              "Höhendifferenz: ", as.character(round(height_diff)), " m"
             ),
             highlightOptions = highlightOptions(color = "yellow", weight = 6)
           )
@@ -335,7 +344,6 @@ server <- function(input, output, session) {
     paste("Ausgewaehltes Segment edgeUID: ", input$map_shape_click$id)
   })
   
-  # Filter dataframes for distribution of edgeuid 
   # Filter dataframes for distribution of edgeuid 
   selected_hour_bikers <- reactive({
     req(input$map_shape_click)
@@ -460,130 +468,78 @@ server <- function(input, output, session) {
     }
   }, height = 200, width = 200)
   
-  # Km Filter-----------------------------------------------------------------------------
-  filtered_bikers <- reactive({
-    joined_bikers() %>%
-  arrange(desc(total_bikers)) %>%
-    mutate(cumulative_km = cumsum(km)) 
-  })
-  
-  filtered_hikers <- reactive({
-    joined_hikers() %>%
-    arrange(desc(total_hikers)) %>%
-    mutate(cumulative_km = cumsum(km))
-  })
-  # initialize km filter variable 
-  km_filter <- NULL
-  filtered_polylines <- reactive({
+# Combined Filters -------------------------------------------------------------
+  # Compound filters
+  combined_filtered_data <- reactive({
+    
+    data_bikers <- joined_bikers()
+    data_hikers <- joined_hikers()
+    
+    # Apply km filter
     if (input$km_checkbox) {
-      print("activate km filter")
-       km_filter <- input$km_filter
-      print(km_filter)
-      
-      top_bikes <- filtered_bikers() %>%
-        filter(cumulative_km <= km_filter[2])
-      
-      top_hikes<- filtered_hikers() %>%
-        filter(cumulative_km <= km_filter[2])
-        return(list(bikers = top_bikes, hikers = top_hikes))
-      }
-  })
-  
-  observe({
-    if (input$km_checkbox) {
-      bikers_data <- filtered_polylines()$bikers
-      hikers_data <- filtered_polylines()$hikers
-      
-      
-        leafletProxy("map") %>%
-        clearShapes() %>%
-        clearMarkers() %>%
-        clearMarkerClusters() %>%
-        addPolylines(group = "bikers",
-                     data = bikers_data,
-                     color = if (total_bikers_exist()) { ~color_bike()(total_bikers) },
-                     opacity = 0.8,
-                     layerId = ~edgeUID,
-                     popup = ~paste("Edgeuid: ", as.character(edgeUID), "<br>",
-                                    "Gesamtanzahl Radfahrten", as.character(total_bikers), "<br>",
-                                    "Segment Laenge (in m):", as.character(m)),
-                     highlightOptions = highlightOptions(color = "yellow",
-                                                         weight = 6)) %>%
-        addPolylines(group = "hikers",
-                     data = hikers_data,
-                     color = if (total_hikers_exist()) { ~color_hike()(total_hikers) },
-                     opacity = 0.8,
-                     layerId = ~edgeUID,
-                     popup = ~paste("Edgeuid: ", as.character(edgeUID), "<br>",
-                                    "Gesamtanzahl Wanderungen:", as.character(total_hikers), "<br>",
-                                    "Segment Laenge (in m):", as.character(m)),
-                     highlightOptions = highlightOptions(color = "yellow",
-                                                         weight = 6)
-        )
-      
-    }else {
-      leafletProxy("map") %>%
-        clearShapes() %>%
-        clearMarkerClusters() %>%
-        addCircleMarkers(
-          data = st_coordinates(st_startpoint(trails$geometry)),
-          clusterOptions = markerClusterOptions(), group = "cluster"
-        )
+      km_filter <- input$km_filter
+      data_bikers <- data_bikers %>% filter(cumulative_km <= km_filter[2])
+      data_hikers <- data_hikers %>% filter(cumulative_km <= km_filter[2])
     }
-  })
-# Altitude filter -------------------------------------------------------------
-  
-  # initialize altitude filter variable 
-  altitude_filter <- NULL
-  
-  altitude_polylines <- reactive({
+    
+    # Apply altitude filter
     if (input$altitude_checkbox) {
-      print("activate altitude filter")
       altitude_range <- input$altitude_range
-      print(altitude_filter)
-      
-      altitude_bikers <- joined_bikers() %>%
-        filter(Z_Max >= altitude_range[1] & Z_Max <= altitude_range[2])
-      
-      altitude_hikers<- joined_hikers() %>%
-        filter(Z_Max >= altitude_range[1] & Z_Max <= altitude_range[2])
-      return(list(bikers = altitude_bikers, hikers = altitude_hikers))
+      data_bikers <- data_bikers %>% filter(Z_Max >= altitude_range[1] & Z_Max <= altitude_range[2])
+      data_hikers <- data_hikers %>% filter(Z_Max >= altitude_range[1] & Z_Max <= altitude_range[2])
     }
+    
+    # Apply height difference filter
+    if (input$diff_checkbox) {
+      diff_range <- input$diff_range
+      data_bikers <- data_bikers %>% filter(height_diff >= diff_range[1] & height_diff <= diff_range[2])
+      data_hikers <- data_hikers %>% filter(height_diff >= diff_range[1] & height_diff <= diff_range[2])
+    }
+    
+    return(list(bikers = data_bikers, hikers = data_hikers))
   })
   
+# observe block applying filters
   observe({
-    if (input$altitude_checkbox) {
-      bikers_altitude <- altitude_polylines()$bikers
-      hikers_altitude <- altitude_polylines()$hikers
-      
-      
+    
+    data_bikers <- combined_filtered_data()$bikers
+    data_hikers <- combined_filtered_data()$hikers
+    
+    if (input$km_checkbox || input$altitude_checkbox || input$diff_checkbox) {
       leafletProxy("map") %>%
         clearShapes() %>%
         clearMarkers() %>%
         clearMarkerClusters() %>%
-        addPolylines(group = "bikers",
-                     data = bikers_altitude,
-                     color = if (total_bikers_exist()) { ~color_bike()(total_bikers) },
-                     opacity = 0.8,
-                     layerId = ~edgeUID,
-                     popup = ~paste("Edgeuid: ", as.character(edgeUID), "<br>",
-                                    "Gesamtanzahl Radfahrten", as.character(total_bikers), "<br>",
-                                    "Segment Laenge (in m):", as.character(m)),
-                     highlightOptions = highlightOptions(color = "yellow",
-                                                         weight = 6)) %>%
-        addPolylines(group = "hikers",
-                     data = hikers_altitude,
-                     color = if (total_hikers_exist()) { ~color_hike()(total_hikers) },
-                     opacity = 0.8,
-                     layerId = ~edgeUID,
-                     popup = ~paste("Edgeuid: ", as.character(edgeUID), "<br>",
-                                    "Gesamtanzahl Wanderungen:", as.character(total_hikers), "<br>",
-                                    "Segment Laenge (in m):", as.character(m)),
-                     highlightOptions = highlightOptions(color = "yellow",
-                                                         weight = 6)
+        addPolylines(
+          group = "bikers",
+          data = data_bikers,
+          color = if (total_bikers_exist()) { ~color_bike()(total_bikers) },
+          opacity = 0.8,
+          layerId = ~edgeUID,
+          popup = ~paste("Edgeuid: ", as.character(edgeUID), "<br>",
+                         "Gesamtanzahl Radfahrten: ", as.character(total_bikers), "<br>",
+                         "Segment Laenge: ", as.character(round(m)), " m<br>",
+                         "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
+                         "Höhendifferenz: ", as.character(round(height_diff)), " m"
+          ),
+          highlightOptions = highlightOptions(color = "yellow", weight = 6)
+        ) %>%
+        addPolylines(
+          group = "hikers",
+          data = data_hikers,
+          color = if (total_hikers_exist()) { ~color_hike()(total_hikers) },
+          opacity = 0.8,
+          layerId = ~edgeUID,
+          popup = ~paste("Edgeuid: ", as.character(edgeUID), "<br>",
+                         "Gesamtanzahl Wanderungen: ", as.character(total_hikers), "<br>",
+                         "Segment Laenge: ", as.character(round(m)), " m<br>",
+                         "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
+                         "Höhendifferenz: ", as.character(round(height_diff)), " m"
+          ),
+          highlightOptions = highlightOptions(color = "yellow", weight = 6)
         )
       
-    }else {
+    } else {
       leafletProxy("map") %>%
         clearShapes() %>%
         clearMarkerClusters() %>%
@@ -594,6 +550,8 @@ server <- function(input, output, session) {
     }
   })
   
+  
+# Sement id   ------------------------------------------------------------------
   observeEvent(input$map_shape_click, {
     clicked_id <- input$map_shape_click$id
     #print(clicked_id)
