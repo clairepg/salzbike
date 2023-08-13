@@ -116,7 +116,7 @@ plot_month_hikers <- ggplot(months_hikers, aes(x = month)) +
 
 # return(wfs_data)
 #}
-#-------------------------------------------
+# read in trail data from shapefile-------------------------------------------
 trails <- st_read("data/Wegenetz/wegenetz_update.shp")
 trails$geometry <- st_zm(trails$geometry)
 trails$edgeUID <- as.integer(trails$edgeUID)
@@ -130,7 +130,7 @@ trails$Shape_Leng <- NULL
 #unique_edgeUIDs <- unique(c(trips_hikers$edgeUID, trips_bikers$edgeUID))
 #trails <- trails %>% filter(edgeUID %in% unique_edgeUIDs)
 
-trails <- trails[1:8000, ]
+#trails <- trails[1:8000, ]
 #trails_test$edgeUID <- as.integer(trails_test$edgeUID)
 
 # UI ---------------------------------------------------------------------------------
