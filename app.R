@@ -193,17 +193,13 @@ server <- function(input, output, session) {
   # Join trips_bikers with wfs_data based on edgeuid or edgeUID
   joined_bikers <- reactive({
     print("Inside joined_bikers")
-    inner_join(trails, trips_bikers, by = "edgeUID") %>% 
-        arrange(desc(total_bikers)) %>%
-        mutate(cumulative_km = cumsum(km)) 
+    inner_join(trails, trips_bikers, by = "edgeUID")
     })
   
   # Join trips_hikers with wfs_data based on edgeuid or edgeUID
   joined_hikers <- reactive({
     print("Inside joined_hikers")
-    inner_join(trails, trips_hikers, by = "edgeUID") %>%
-        arrange(desc(total_hikers)) %>%
-        mutate(cumulative_km = cumsum(km))
+    inner_join(trails, trips_hikers, by = "edgeUID")  
   })
   
   
@@ -478,8 +474,14 @@ server <- function(input, output, session) {
     # Apply km filter
     if (input$km_checkbox) {
       km_filter <- input$km_filter
-      data_bikers <- data_bikers %>% filter(cumulative_km <= km_filter[2])
-      data_hikers <- data_hikers %>% filter(cumulative_km <= km_filter[2])
+      data_bikers <- data_bikers %>% 
+        arrange(desc(total_bikers)) %>% 
+        mutate(cumulative_km = cumsum(km)) 
+        filter(cumulative_km <= km_filter[2])
+      data_hikers <- data_hikers %>% 
+        arrange(desc(total_hikers)) %>% 
+        mutate(cumulative_km = cumsum(km)) %>% 
+        filter(cumulative_km <= km_filter[2])
     }
     
     # Apply altitude filter
