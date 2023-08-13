@@ -13,13 +13,12 @@ library(shinythemes)
 library(thematic)
 library(RColorBrewer)
 
-# load data ---------------------------------------------------------------
-#setwd("C:/Users/clair/Desktop/ubuntu_salzbike/data")
+# Normalization function -----------------------------------------------
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
 
-#trips_bikers <- read.csv("data/Totaltrips_Bikers_studyarea.csv")
-#trips_hikers <- read.csv("data/Totaltrips_Hikers_studyarea.csv")
-#trips_bikers <- read.csv("data/Bikingdata_Bundesland.csv")
-#trips_hikers <- read.csv("data/Hikingdata_Bundesland.csv")
+# load data ---------------------------------------------------------------
 trips_bikers <- read.csv("data/SegmentStats_Bikers_Bundesland.csv")
 trips_hikers <- read.csv("data/SegmentStats_Hikers_Bundesland.csv")
 
@@ -33,6 +32,9 @@ trips_hikers <- rename(trips_hikers, edgeUID = edgeuid)
 trips_bikers$edgeUID <- as.integer(trips_bikers$edgeUID)
 trips_hikers$edgeUID <- as.integer(trips_hikers$edgeUID)
 
+#normalize total_trips columns 
+trips_bikers$total_bikers_normalized <- normalize(trips_bikers$total_bikers)
+trips_hikers$total_hikers_normalized <- normalize(trips_hikers$total_hikers)
 
 
 
@@ -130,7 +132,7 @@ trails$Shape_Leng <- NULL
 #unique_edgeUIDs <- unique(c(trips_hikers$edgeUID, trips_bikers$edgeUID))
 #trails <- trails %>% filter(edgeUID %in% unique_edgeUIDs)
 
-#trails <- trails[1:8000, ]
+trails <- trails[1:8000, ]
 #trails_test$edgeUID <- as.integer(trails_test$edgeUID)
 
 # UI ---------------------------------------------------------------------------------
@@ -148,18 +150,24 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
                                             value = FALSE),
                               sliderInput("km_filter",
                                           "Filter by Kilometer",
-                                          min = 0, max = 100, value = c(0, 500),
+                                          min = 0, max = 500, value = c(0, 500),
                                           step = 5),
                               checkboxInput("altitude_checkbox", 
                                             "Filter for altitude",
                                             value = FALSE),
                               sliderInput("altitude_range", "Altitude range",
-                                          min = 0, max = 3660, value = c(500, 1000)),
+                                          min = 0, max = 3660, value = c(500, 1000), step = 50),
                               checkboxInput("diff_checkbox", 
                                             "Filter for height difference",
                                             value = FALSE),
                               sliderInput("diff_range", "Height difference range",
-                                          min = 0, max = 720, value = c(50, 100)),
+                                          min = 0, max = 720, value = c(50, 100), step = 5),
+                              checkboxInput("conflict_checkbox", 
+                                            "Filter for conflict index",
+                                            value = FALSE),
+                              sliderInput("conflict_range", "Conflict index range",
+                                          min = 0, max = 100, value = c(0, 100), step = 5),
+                              downloadButton("downloadData", "Download Filtered Shapefile"),
                               fluidRow(
                                 column(5,  plotOutput("hour_plot_bikers", height = "20%")),
                                 column(5, plotOutput("hour_plot_hikers", height = "20%"))
@@ -179,7 +187,7 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
                             )
                           )
                  ),
-                 tabPanel("Info", "Information"),
+                 tabPanel("Info", "Information. The conflict index was calculated by normalizing the values of total trips of both the biking and hiking data. Using the normalized data, the conflict index is calculated that returns values from 0 (no conflict) to 100 (maximum conflict). The conflict index is highest when both bikers and hikers have a high number of total trips for a specific edgeUID."),
 )
 
 
@@ -187,9 +195,8 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
 server <- function(input, output, session) {
   thematic_shiny()
   
- # observe({
-   # print(input$km_filter[2])
- # })
+
+# Join df with shapefile ----------------------------------------------------
   # Join trips_bikers with wfs_data based on edgeuid or edgeUID
   joined_bikers <- reactive({
     print("Inside joined_bikers")
@@ -201,17 +208,33 @@ server <- function(input, output, session) {
     print("Inside joined_hikers")
     inner_join(trails, trips_hikers, by = "edgeUID")  
   })
-  
-  
+
   # Check if 'total_trips' column exists in joined_data
   total_bikers_exist <- reactive({
     "total_bikers" %in% names(joined_bikers())
-    
   })
   total_hikers_exist <- reactive({
     "total_hikers" %in% names(joined_hikers())
     
   })
+  
+# Conflict index ------------------------------------------------------
+  # Calculate the conflict index
+  compute_conflict_index <- function() {
+    combined <- inner_join(joined_bikers(), joined_hikers(), by = "edgeUID", suffix = c("_bikers", "_hikers"))
+    
+    # Calculate the conflict index
+    combined$conflict_index <- combined$total_bikers_normalized * combined$total_hikers_normalized * 100
+    
+    return(combined)
+  }
+  
+  # Use the compute_conflict_index function
+  combined_data <- reactive({
+    compute_conflict_index()
+  })
+  
+  
   # color function -------------------------------------------------------
   # Define a custom color palette based on total_trips column
   color_bike <- reactive({
@@ -344,46 +367,38 @@ server <- function(input, output, session) {
   selected_hour_bikers <- reactive({
     req(input$map_shape_click)
     selected_data <- filter(hours_bikers, edgeuid == as.integer(input$map_shape_click$id))
-    
-   # print(selected_data)
     selected_data
   })
   selected_hour_hikers <- reactive({
     req(input$map_shape_click)
     selected_data <- filter(hours_hikers, edgeuid == as.integer(input$map_shape_click$id))
-   # print(selected_data)
     selected_data
   })
   selected_weekday_bikers <- reactive({
     req(input$map_shape_click)
     selected_data <- filter(weekdays_bikers, edgeuid == as.integer(input$map_shape_click$id))
-   # print(selected_data)
     selected_data
   })
   
   selected_weekday_hikers <- reactive({
     req(input$map_shape_click)
     selected_data <- filter(weekdays_hikers, edgeuid == as.integer(input$map_shape_click$id))
-  #  print(selected_data)
     selected_data
   })
   selected_month_bikers <- reactive({
     req(input$map_shape_click)
     selected_data <- filter(months_bikers, edgeuid == as.integer(input$map_shape_click$id))
-   # print(selected_data)
     selected_data
   })
   selected_month_hikers <- reactive({
     req(input$map_shape_click)
     selected_data <- filter(months_hikers, edgeuid == as.integer(input$map_shape_click$id))
-   # print(selected_data)
     selected_data
   })
   
   
   output$hour_plot_bikers <- renderPlot({
     if (click_status() == 0) {
-     # print("Render overall hour plot for bikers")
       plot_hour_bikers
     } else {
       req(selected_hour_bikers())
@@ -396,9 +411,7 @@ server <- function(input, output, session) {
   
   output$hour_plot_hikers <- renderPlot({
     if (is.null(input$map_shape_click)) {
-      #print("Render overall hour plot for bikers")
       plot_hour_hikers
-      # ggplot(overall_hour_bikers, ...)
     } else {
       req(selected_hour_hikers())
       # Render the plot for the selected edgeuid
@@ -410,9 +423,7 @@ server <- function(input, output, session) {
   
   output$weekday_plot_bikers <- renderPlot({
     if (is.null(input$map_shape_click)) {
-     # print("Render overall weekday plot for bikers")
       plot_weekday_bikers
-      # ggplot(overall_hour_bikers, ...)
     } else {
       req(selected_weekday_bikers())
       # Render the plot for the selected edgeuid
@@ -424,9 +435,7 @@ server <- function(input, output, session) {
   
   output$weekday_plot_hikers <- renderPlot({
     if (is.null(input$map_shape_click)) {
-     # print("Render overall weekday plot for hikers")
       plot_weekday_hikers
-      # ggplot(overall_hour_bikers, ...)
     } else {
       req(selected_weekday_hikers())
       # Render the plot for the selected edgeuid
@@ -438,12 +447,9 @@ server <- function(input, output, session) {
   
   output$month_plot_bikers <- renderPlot({
     if (is.null(input$map_shape_click)) {
-     # print("Render overall month plot for bikers")
       plot_month_bikers
-      # ggplot(overall_hour_bikers, ...)
     } else {
       req(selected_month_bikers())
-      # Render the plot for the selected edgeuid
       ggplot(selected_month_bikers(), aes(x = month, y = total_trips)) +
         geom_bar(stat = "identity") +
         ggtitle("Biker Month Plot")
@@ -452,9 +458,7 @@ server <- function(input, output, session) {
   
   output$month_plot_hikers <- renderPlot({
     if (is.null(input$map_shape_click)) {
-     # print("Render overall month plot for hikers")
       plot_month_hikers
-      # ggplot(overall_hour_bikers, ...)
     } else {
       req(selected_month_hikers())
       # Render the plot for the selected edgeuid
@@ -474,10 +478,12 @@ server <- function(input, output, session) {
     # Apply km filter
     if (input$km_checkbox) {
       km_filter <- input$km_filter
+      
       data_bikers <- data_bikers %>% 
         arrange(desc(total_bikers)) %>% 
-        mutate(cumulative_km = cumsum(km)) 
+        mutate(cumulative_km = cumsum(km)) %>% 
         filter(cumulative_km <= km_filter[2])
+      
       data_hikers <- data_hikers %>% 
         arrange(desc(total_hikers)) %>% 
         mutate(cumulative_km = cumsum(km)) %>% 
@@ -501,11 +507,15 @@ server <- function(input, output, session) {
     return(list(bikers = data_bikers, hikers = data_hikers))
   })
   
+  # define as reactive value for download later
+  filtered_bikers <- reactiveVal()
+  
 # observe block applying filters
   observe({
     
-    data_bikers <- combined_filtered_data()$bikers
-    data_hikers <- combined_filtered_data()$hikers
+    filtered_bikers <- combined_filtered_data()$bikers
+    filtered_bikers(combined_filtered_data()$bikers)
+    filtered_hikers <- combined_filtered_data()$hikers
     
     if (input$km_checkbox || input$altitude_checkbox || input$diff_checkbox) {
       leafletProxy("map") %>%
@@ -514,7 +524,7 @@ server <- function(input, output, session) {
         clearMarkerClusters() %>%
         addPolylines(
           group = "bikers",
-          data = data_bikers,
+          data = filtered_bikers,
           color = if (total_bikers_exist()) { ~color_bike()(total_bikers) },
           opacity = 0.8,
           layerId = ~edgeUID,
@@ -528,7 +538,7 @@ server <- function(input, output, session) {
         ) %>%
         addPolylines(
           group = "hikers",
-          data = data_hikers,
+          data = filtered_hikers,
           color = if (total_hikers_exist()) { ~color_hike()(total_hikers) },
           opacity = 0.8,
           layerId = ~edgeUID,
@@ -551,13 +561,26 @@ server <- function(input, output, session) {
         )
     }
   })
-  
-  
-# Sement id   ------------------------------------------------------------------
-  observeEvent(input$map_shape_click, {
-    clicked_id <- input$map_shape_click$id
-    #print(clicked_id)
-  })
+# Download function 
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      paste("filtered_data", Sys.Date(), ".zip", sep = "")
+    },
+    
+    content = function(file) {
+      # Assuming the filtered shapefile is stored in a reactive called filtered_data()
+      filtered_sf <- filtered_bikers()
+      
+      # Write the shapefile to a temporary directory
+      temp_dir <- tempdir()
+      sf::st_write(filtered_sf, paste0(temp_dir, "/filtered_data.shp"))
+      
+      # Zip the shapefile components
+      zip(zipfile = file, files = list.files(temp_dir, full.names = TRUE))
+    },
+    
+    contentType = "application/zip"
+  )
   
 }
 
