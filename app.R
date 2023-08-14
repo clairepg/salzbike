@@ -182,6 +182,11 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
                                             value = FALSE),
                               sliderInput("conflict_range", "Conflict index range",
                                           min = 0, max = 100, value = c(0, 100), step = 5),
+                              checkboxInput("steepness_checkbox", 
+                                            "Filter for trail steepness",
+                                            value = FALSE),
+                              sliderInput("steepness_range", "Grade percentage",
+                                          min = 0, max = 45, value = c(0, 45), step = 5),
                               downloadButton("downloadData", "Download Filtered Shapefile"),
                               fluidRow(
                                 column(5,  plotOutput("hour_plot_bikers", height = "20%")),
@@ -431,7 +436,7 @@ server <- function(input, output, session) {
     data_hikers <- joined_hikers()
     
     # If no checkboxes are selected, return original datasets immediately
-    if (!input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox) {
+    if (!input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox  && !input$steepness_checkbox) {
       return(list(bikers = data_bikers, hikers = data_hikers))
     }
     
@@ -461,11 +466,17 @@ server <- function(input, output, session) {
       data_bikers <- data_bikers %>% filter(height_diff >= diff_range[1] & height_diff <= diff_range[2])
       data_hikers <- data_hikers %>% filter(height_diff >= diff_range[1] & height_diff <= diff_range[2])
     }
-    # Apply height difference filter
+    # Apply conflict index filter
     if (input$conflict_checkbox) {
       conflict_range <- input$conflict_range
       data_bikers <- data_bikers %>% filter(conflict_index >= conflict_range[1] & conflict_index <= conflict_range[2])
       data_hikers <- data_hikers %>% filter(conflict_index >= conflict_range[1] & conflict_index <= conflict_range[2])
+    }
+    # Apply grade percentage filter
+    if (input$steepness_checkbox) {
+      steepness_range <- input$steepness_range
+      data_bikers <- data_bikers %>% filter(grade_percent >= steepness_range[1] & grade_percent <= steepness_range[2])
+      data_hikers <- data_hikers %>% filter(grade_percent >= steepness_range[1] & grade_percent <= steepness_range[2])
     }
     
     return(list(bikers = data_bikers, hikers = data_hikers))
@@ -498,7 +509,7 @@ server <- function(input, output, session) {
                          "Gesamtanzahl Radfahrten: ", as.character(total_bikers), "<br>",  "Segment Laenge: ", as.character(round(m)), " m<br>",
                          "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
                          "Höhendifferenz: ", as.character(round(height_diff)), " m <br>",
-                         "Grad: ", as.character(round(grade_percent)), " ° <br>",
+                         "Durchschnitt Grad: ", as.character(round(grade_percent)), " ° <br>",
                          "Konflikt Index ", as.character(round(conflict_index)) 
           ),
           highlightOptions = highlightOptions(color = "yellow", weight = 6)
@@ -514,7 +525,7 @@ server <- function(input, output, session) {
                          "Gesamtanzahl Radfahrten: ", as.character(total_bikers), "<br>",  "Segment Laenge: ", as.character(round(m)), " m<br>",
                          "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
                          "Höhendifferenz: ", as.character(round(height_diff)), " m <br>",
-                         "Grad: ", as.character(round(grade_percent)), " ° <br>",
+                         "Durchschnittlich Grad: ", as.character(round(grade_percent)), " ° <br>",
                          "Konflikt Index: ", as.character(round(conflict_index)) 
           ),
           highlightOptions = highlightOptions(color = "yellow", weight = 6)
@@ -541,7 +552,7 @@ server <- function(input, output, session) {
       zoom <- input$map_zoom
       print(paste("zoom:", zoom))
       
-    if (zoom <= 10  && !input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox) {
+    if (zoom <= 10  && !input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox && !input$steepness_checkbox) {
       leafletProxy("map") %>%
         hideGroup("bikers") %>%
         hideGroup("hikers") %>%
