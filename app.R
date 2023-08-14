@@ -210,12 +210,19 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
                           )
                  ),
                  tabPanel("Info", 
-                          HTML("<h3>Data Sources</h3>
-                                <h4>Strava Metro</h4>
-                                <h4>OpenStreetMap API</h4>
-                               <h3>Conflict Index</h3> The conflict index was calculated by normalizing the values of total trips of both the biking and hiking data. Using the normalized data, the conflict index is calculated that returns values from 0 (no conflict) to 100 (maximum conflict). The conflict index is highest when both bikers and hikers have a high number of total trips for a specific edgeUID.
-                               Values of the biking and hiking layer show the same conflict index for the same edgeuid. 
-                               <h4>Contact</h4>")
+                          HTML("<h3>Data Sources</h3>"),
+                          HTML(" <h4>Strava Metro</h4>"),
+                          tags$img(src = "strava_logo.png", height = "100px", width = "100px"),
+                          HTML("<br> The activity data is from Strava Metro. A service by Strava, a popular platform for athletes to upload their running, cycling, etc. activities. The data used by this application consists of biking data from 2019, 2020, 2021 and 2022. Additionally walking data (includes running, hiking, walking) from 2019,2020 and 2021."),
+                          HTML("<h4>OpenStreetMap API</h4>"),
+                          tags$img(src = "Openstreetmap_logo.svg.png", height = "100px", width = "100px"),  # Adjust the height and width as necessary
+                          HTML("<br> To extract activity data from forest roads, trails and dirt tracks, road surface data from OpenStreetMap was utilized to delete data from asphalt roads from the analyzed data. The road surface data from OpenStreetMap is not 100% accurate so it can happen that data from normal streets is also included in the shown data."),
+                          HTML("<h3>Conflict Index</h3>"),
+                          HTML(" The conflict index was calculated by normalizing the values of total trips of both the biking and hiking data. Using the normalized data, the conflict index is calculated that returns values from 0 (no conflict) to 100 (maximum conflict). The conflict index is highest when both bikers and hikers have a high number of total trips for a specific edgeUID.
+                               Values of the biking and hiking layer show the same conflict index for the same edgeuid. "),        
+                          HTML("<h3>How to use this Dashboard</h3>"),
+                          HTML("The dashboard allows for multiple filtering of the data. It is possible to apply multiple filters at the same time. But it is to note that when applying multiple filters, the filtering is done in the sequence of applying the filters. A bit special is the toggle filter, when applied the current map extent is used to select the map bounds for the then following filters. To get the full trail network again one just needs to untoggle the switch."),
+                          HTML(" <h4>Contact</h4>")     
                  )
                  
 )
