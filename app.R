@@ -27,15 +27,18 @@ trips_hikers <- read.csv("data/SegmentStats_Hikers_Bundesland.csv")
 trips_bikers <- rename(trips_bikers, total_bikers = total_trips)
 trips_hikers <- rename(trips_hikers, total_hikers = total_trips)
 
-trips_bikers <- rename(trips_bikers, edgeUID = edgeuid)
-trips_hikers <- rename(trips_hikers, edgeUID = edgeuid)
-trips_bikers$edgeUID <- as.integer(trips_bikers$edgeUID)
-trips_hikers$edgeUID <- as.integer(trips_hikers$edgeUID)
+trips_bikers$edgeUID <- as.integer(trips_bikers$edgeuid)
+trips_hikers$edgeUID <- as.integer(trips_hikers$edgeuid)
 
 #normalize total_trips columns 
 trips_bikers$total_bikers_normalized <- normalize(trips_bikers$total_bikers)
 trips_hikers$total_hikers_normalized <- normalize(trips_hikers$total_hikers)
 
+trips <- inner_join(trips_bikers, trips_hikers, by = "edgeuid")
+trips<- rename(trips, edgeUID = edgeuid)
+trips$X.x <- NULL 
+trips$X.y <- NULL
+trips$conflict_index <- trips$total_bikers_normalized * trips$total_hikers_normalized * 100
 
 
 
@@ -132,7 +135,7 @@ trails$Shape_Leng <- NULL
 #unique_edgeUIDs <- unique(c(trips_hikers$edgeUID, trips_bikers$edgeUID))
 #trails <- trails %>% filter(edgeUID %in% unique_edgeUIDs)
 
-#trails <- trails[1:8000, ]
+trails <- trails[1:8000, ]
 #trails_test$edgeUID <- as.integer(trails_test$edgeUID)
 
 # UI ---------------------------------------------------------------------------------
@@ -148,9 +151,11 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
                               checkboxInput("km_checkbox", 
                                             "Filter for the top km",
                                             value = FALSE),
-                              sliderInput("km_filter",
-                                          "Filter by Kilometer",
-                                          min = 0, max = 500, value = c(0, 500),
+                              sliderInput("km_filter", 
+                                          "Filter by Kilometer", 
+                                          min = 0, 
+                                          max = 500, 
+                                          value = c(0, 500), 
                                           step = 5),
                               checkboxInput("altitude_checkbox", 
                                             "Filter for altitude",
@@ -187,7 +192,14 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
                             )
                           )
                  ),
-                 tabPanel("Info", "Information. The conflict index was calculated by normalizing the values of total trips of both the biking and hiking data. Using the normalized data, the conflict index is calculated that returns values from 0 (no conflict) to 100 (maximum conflict). The conflict index is highest when both bikers and hikers have a high number of total trips for a specific edgeUID."),
+                 tabPanel("Info", 
+                          HTML("<h3>Data Sources</h3>
+                                <h4>Strava Metro</h4>
+                                <h4>OpenStreetMap API</h4>
+                               <h3>Conflict Index</h3> The conflict index was calculated by normalizing the values of total trips of both the biking and hiking data. Using the normalized data, the conflict index is calculated that returns values from 0 (no conflict) to 100 (maximum conflict). The conflict index is highest when both bikers and hikers have a high number of total trips for a specific edgeUID.
+                               <h4>Contact</h4>")
+                 )
+                 
 )
 
 
@@ -200,45 +212,20 @@ server <- function(input, output, session) {
   # Join trips_bikers with wfs_data based on edgeuid or edgeUID
   joined_bikers <- reactive({
     print("Inside joined_bikers")
-    inner_join(trails, trips_bikers, by = "edgeUID")
+    inner_join(trails, trips, by = "edgeUID")
+    
     })
   
   # Join trips_hikers with wfs_data based on edgeuid or edgeUID
   joined_hikers <- reactive({
     print("Inside joined_hikers")
-    inner_join(trails, trips_hikers, by = "edgeUID")  
+    inner_join(trails, trips, by = "edgeUID")  
   })
 
-  # Check if 'total_trips' column exists in joined_data
-  total_bikers_exist <- reactive({
-    "total_bikers" %in% names(joined_bikers())
-  })
-  total_hikers_exist <- reactive({
-    "total_hikers" %in% names(joined_hikers())
-    
-  })
-  
-# Conflict index ------------------------------------------------------
-  # Calculate the conflict index
-  compute_conflict_index <- function() {
-    combined <- inner_join(joined_bikers(), joined_hikers(), by = "edgeUID", suffix = c("_bikers", "_hikers"))
-    
-    # Calculate the conflict index
-    combined$conflict_index <- combined$total_bikers_normalized * combined$total_hikers_normalized * 100
-    
-    return(combined)
-  }
-  
-  # Use the compute_conflict_index function
-  combined_data <- reactive({
-    compute_conflict_index()
-  })
-  
   
   # color function -------------------------------------------------------
   # Define a custom color palette based on total_trips column
   color_bike <- reactive({
-    if (total_bikers_exist()) {
       print("join bikers successful")
       # Customizing the color palette
       bluepalette <- colorRampPalette(c("lightblue", "darkblue"))(n = 20)
@@ -249,12 +236,9 @@ server <- function(input, output, session) {
         domain = joined_bikers()$total_bikers,
         na.color = "transparent"
       )
-      
-    }
   })
   
   color_hike <- reactive({
-    if (total_hikers_exist()) {
       print("join hikers successful")
       
       redpalette <- colorRampPalette(c("#FFC0CB", "#8B0000"))(n = 20)
@@ -265,7 +249,6 @@ server <- function(input, output, session) {
         domain = joined_hikers()$total_hikers,
         na.color = "transparent"
       )
-    }
   })
   #zoom_level <- reactiveVal(10)  # initialize zoom level to match the initial map zoom
   # Zoom levels ----------------------------------------------------------------
@@ -274,74 +257,35 @@ server <- function(input, output, session) {
       addProviderTiles("CartoDB.DarkMatter", group = "Carto dark") %>%
       addProviderTiles("CartoDB.Positron", group = "Carto light") %>%
       addTiles(group = "OSM standard") %>%
-      setView(lng = 13.055, lat = 47.8095, zoom = 10) %>%
-      addCircleMarkers(
-        data = st_coordinates(st_startpoint(trails$geometry)),
-        clusterOptions = markerClusterOptions(), group = "cluster" 
-      ) %>% 
+      setView(lng = 13.055, lat = 47.8095, zoom = 10) %>% 
       addLayersControl(baseGroups = c("OSM standard", "Carto dark", "Carto light"),
                        overlayGroups = c("hikers", "bikers", "cluster"),
                        options = layersControlOptions(collapsed = FALSE,
                                                       defaultBase = "Carto dark"))
   })
   
-  observe({
-    # Check if map zoom value is available
-    if (!is.null(input$map_zoom)) {
-      
-      zoom <- input$map_zoom
-      print(paste("zoom:", zoom))
-      
-      # When zoom level is greater than or equal to 11
-      if (zoom >= 11) {
-        leafletProxy("map") %>%
-          clearShapes() %>%
-          clearMarkers() %>% 
-          clearMarkerClusters() %>% 
-          addPolylines(
-            group = "bikers",
-            data = joined_bikers(),
-            color = if (total_bikers_exist()) { ~color_bike()(total_bikers) },
-            opacity = 0.6,
-            layerId = ~edgeUID,
-            popup = ~paste(
-              "Edgeuid: ", as.character(edgeUID), "<br>",
-              "Gesamtanzahl Radfahrten: ", as.character(total_bikers), "<br>",
-              "Segment Laenge: ", as.character(round(m)), " m<br>",
-              "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
-              "Höhendifferenz: ", as.character(round(height_diff)), " m"
-            ),
-            highlightOptions = highlightOptions(color = "yellow", weight = 6)
-          ) %>%
-          addPolylines(
-            group = "hikers",
-            data = joined_hikers(),
-            color = if (total_hikers_exist()) { ~color_hike()(total_hikers) },
-            opacity = 0.6,
-            layerId = ~edgeUID,
-            popup = ~paste(
-              "Edgeuid: ", as.character(edgeUID), "<br>",
-              "Gesamtanzahl Wanderungen: ", as.character(total_hikers), "<br>",
-              "Segment Laenge: ", as.character(round(m)), " m<br>",
-              "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
-              "Höhendifferenz: ", as.character(round(height_diff)), " m"
-            ),
-            highlightOptions = highlightOptions(color = "yellow", weight = 6)
-          )
-        
-        # When zoom level is less than or equal to 10 and both checkboxes are unchecked
-      } else if (zoom <= 10 && !input$km_checkbox && !input$altitude_checkbox) {
-        leafletProxy("map") %>%
-          clearShapes() %>%
-          addCircleMarkers(
-            data = st_coordinates(st_startpoint(trails$geometry)),
-            clusterOptions = markerClusterOptions(),
-            group = "cluster"
-          )
-      }
-    }
-  })
-  
+  # observe({
+  #   # Check if map zoom value is available
+  #   if (!is.null(input$map_zoom)) {
+  #     
+  #     zoom <- input$map_zoom
+  #     print(paste("zoom:", zoom))
+  #     
+  #     # When zoom level is greater than or equal to 11
+  #     if (zoom >= 11) {
+  #       leafletProxy("map") %>%
+  #         hideGroup("cluster") %>%
+  #         showGroup("bikers") %>%
+  #         showGroup("hikers")
+  #       
+  #     } else if (zoom <= 10 && !input$km_checkbox && !input$altitude_checkbox) {
+  #       leafletProxy("map") %>%
+  #         hideGroup("bikers") %>%
+  #         hideGroup("hikers") %>%
+  #         showGroup("cluster")
+  #     }
+  #   }
+  # })
   # Click Event: add plots -----------------------------------
   click_status <- reactiveVal(0)
   
@@ -475,15 +419,18 @@ server <- function(input, output, session) {
     data_bikers <- joined_bikers()
     data_hikers <- joined_hikers()
     
+    # If no checkboxes are selected, return original datasets immediately
+    if (!input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox) {
+      return(list(bikers = data_bikers, hikers = data_hikers))
+    }
+    
     # Apply km filter
     if (input$km_checkbox) {
       km_filter <- input$km_filter
-      
       data_bikers <- data_bikers %>% 
         arrange(desc(total_bikers)) %>% 
         mutate(cumulative_km = cumsum(km)) %>% 
         filter(cumulative_km <= km_filter[2])
-      
       data_hikers <- data_hikers %>% 
         arrange(desc(total_hikers)) %>% 
         mutate(cumulative_km = cumsum(km)) %>% 
@@ -507,30 +454,31 @@ server <- function(input, output, session) {
     return(list(bikers = data_bikers, hikers = data_hikers))
   })
   
+  
   # define as reactive value for download later
   filtered_bikers <- reactiveVal()
   
 # observe block applying filters
   observe({
-    
-    filtered_bikers <- combined_filtered_data()$bikers
+
+    filtered_bikers_data <- combined_filtered_data()$bikers
+    filtered_hikers_data <- combined_filtered_data()$hikers
+    #extra line for download data
     filtered_bikers(combined_filtered_data()$bikers)
-    filtered_hikers <- combined_filtered_data()$hikers
     
-    if (input$km_checkbox || input$altitude_checkbox || input$diff_checkbox) {
       leafletProxy("map") %>%
         clearShapes() %>%
         clearMarkers() %>%
         clearMarkerClusters() %>%
         addPolylines(
           group = "bikers",
-          data = filtered_bikers,
-          color = if (total_bikers_exist()) { ~color_bike()(total_bikers) },
+          data = filtered_bikers_data,
+          color = ~color_bike()(total_bikers),
           opacity = 0.8,
           layerId = ~edgeUID,
           popup = ~paste("Edgeuid: ", as.character(edgeUID), "<br>",
-                         "Gesamtanzahl Radfahrten: ", as.character(total_bikers), "<br>",
-                         "Segment Laenge: ", as.character(round(m)), " m<br>",
+                         "Gesamtanzahl Wanderungen: ", as.character(total_hikers), "<br>",
+                         "Gesamtanzahl Radfahrten: ", as.character(total_bikers), "<br>",  "Segment Laenge: ", as.character(round(m)), " m<br>",
                          "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
                          "Höhendifferenz: ", as.character(round(height_diff)), " m"
           ),
@@ -538,30 +486,55 @@ server <- function(input, output, session) {
         ) %>%
         addPolylines(
           group = "hikers",
-          data = filtered_hikers,
-          color = if (total_hikers_exist()) { ~color_hike()(total_hikers) },
+          data = filtered_hikers_data,
+          color = ~color_hike()(total_hikers),
           opacity = 0.8,
           layerId = ~edgeUID,
           popup = ~paste("Edgeuid: ", as.character(edgeUID), "<br>",
                          "Gesamtanzahl Wanderungen: ", as.character(total_hikers), "<br>",
-                         "Segment Laenge: ", as.character(round(m)), " m<br>",
+                         "Gesamtanzahl Radfahrten: ", as.character(total_bikers), "<br>",  "Segment Laenge: ", as.character(round(m)), " m<br>",
                          "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
                          "Höhendifferenz: ", as.character(round(height_diff)), " m"
           ),
           highlightOptions = highlightOptions(color = "yellow", weight = 6)
-        )
-      
-    } else {
-      leafletProxy("map") %>%
-        clearShapes() %>%
-        clearMarkerClusters() %>%
+        ) %>% 
+        addLayersControl(baseGroups = c("OSM standard", "Carto dark", "Carto light"),
+                         overlayGroups = c("hikers", "bikers", "cluster"),
+                         options = layersControlOptions(collapsed = FALSE,
+                                                        defaultBase = "Carto dark")) %>% 
         addCircleMarkers(
           data = st_coordinates(st_startpoint(trails$geometry)),
           clusterOptions = markerClusterOptions(), group = "cluster"
-        )
+        ) %>% 
+        showGroup("bikers") %>%
+        showGroup("hikers") %>%
+        hideGroup("cluster")
+
+    
+    
+  })
+  observe({
+    current_zoom <- input$map_zoom
+    if (!is.null(input$map_zoom)) {
+
+      zoom <- input$map_zoom
+      print(paste("zoom:", zoom))
+      
+    if (zoom <= 10 ) {
+      leafletProxy("map") %>%
+        hideGroup("bikers") %>%
+        hideGroup("hikers") %>%
+        showGroup("cluster")
+    } else {
+      leafletProxy("map") %>%
+        showGroup("bikers") %>%
+        showGroup("hikers") %>%
+        hideGroup("cluster")
+    }
     }
   })
-# Download function 
+  
+# Download function ----------------------------------------------------------
   output$downloadData <- downloadHandler(
     filename = function() {
       paste("filtered_data", Sys.Date(), ".zip", sep = "")
@@ -570,6 +543,8 @@ server <- function(input, output, session) {
     content = function(file) {
       # Assuming the filtered shapefile is stored in a reactive called filtered_data()
       filtered_sf <- filtered_bikers()
+      filtered_sf$X <- NULL 
+      filtered_sf$Z_Min <- NULL 
       
       # Write the shapefile to a temporary directory
       temp_dir <- tempdir()
