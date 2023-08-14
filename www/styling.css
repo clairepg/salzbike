@@ -9,7 +9,23 @@ body, html {
              margin: 0;
             padding: 0;
             overflow: hidden;
-                    }
-                    .shiny-output-area {
-                      height: 100%;
-                    }
+}
+.shiny-output-area {
+         height: 100%;
+}
+
+
+/* Reduce the height of sliders */
+.js-range-slider {
+    height: 20px; /* adjust as needed */
+}
+
+/* Reduce the margins between controls */
+.shiny-input-container {
+    margin-bottom: 1px; /* adjust as needed */
+}
+
+/* Adjust the font size in sidebar */
+.sidebar {
+    font-size: 0.5em; /* adjust as needed */
+}

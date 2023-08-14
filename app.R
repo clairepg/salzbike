@@ -12,6 +12,7 @@ library(htmltools)
 library(shinythemes)
 library(thematic)
 library(RColorBrewer)
+library(shinyWidgets)
 
 # Normalization function -----------------------------------------------
 normalize <- function(x) {
@@ -187,6 +188,7 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
                                             value = FALSE),
                               sliderInput("steepness_range", "Grade percentage",
                                           min = 0, max = 45, value = c(0, 45), step = 5),
+                              switchInput(inputId = "map_extent", value = FALSE, label = "Filter only map extent"), 
                               downloadButton("downloadData", "Download Filtered Shapefile"),
                               fluidRow(
                                 column(5,  plotOutput("hour_plot_bikers", height = "20%")),
@@ -429,6 +431,16 @@ server <- function(input, output, session) {
   }, height = 200, width = 200)
   
 # Combined Filters -------------------------------------------------------------
+  captured_bounds <- reactiveVal(NULL)
+  
+  observeEvent(input$map_extent, {
+    if (input$map_extent) {
+      captured_bounds(input$map_bounds)
+    } else {
+      captured_bounds(NULL)
+    }
+  })
+  
   # Compound filters
   combined_filtered_data <- reactive({
     
@@ -436,10 +448,27 @@ server <- function(input, output, session) {
     data_hikers <- joined_hikers()
     
     # If no checkboxes are selected, return original datasets immediately
-    if (!input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox  && !input$steepness_checkbox) {
+    if (!input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox  && !input$steepness_checkbox && !input$map_extent) {
       return(list(bikers = data_bikers, hikers = data_hikers))
     }
     
+    # Filtering based on map extent
+    if (input$map_extent && !is.null(captured_bounds())) {
+      bounds <- captured_bounds()
+      
+      # Convert bounds to sf polygon
+      map_polygon <- st_polygon(list(matrix(c(bounds$west, bounds$south,
+                                              bounds$west, bounds$north,
+                                              bounds$east, bounds$north,
+                                              bounds$east, bounds$south,
+                                              bounds$west, bounds$south), ncol = 2, byrow = TRUE))) %>%
+        st_sfc() %>%
+        st_set_crs(4326)
+      
+      # Filter polylines based on intersection with the polygon
+      data_bikers <- data_bikers %>% filter(st_intersects(geometry, map_polygon, sparse = FALSE))
+      data_hikers <- data_hikers %>% filter(st_intersects(geometry, map_polygon, sparse = FALSE))
+    }
     # Apply km filter
     if (input$km_checkbox) {
       km_filter <- input$km_filter
@@ -552,7 +581,7 @@ server <- function(input, output, session) {
       zoom <- input$map_zoom
       print(paste("zoom:", zoom))
       
-    if (zoom <= 10  && !input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox && !input$steepness_checkbox) {
+    if (zoom <= 10  && !input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox && !input$steepness_checkbox && !input$map_extent) {
       leafletProxy("map") %>%
         hideGroup("bikers") %>%
         hideGroup("hikers") %>%

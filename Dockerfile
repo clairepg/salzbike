@@ -60,6 +60,7 @@ RUN Rscript -e 'install.packages("ggplot2", dependencies = TRUE)  ; if (!library
 RUN Rscript -e 'install.packages("htmltools", dependencies = TRUE)  ; if (!library(htmltools, logical.return=TRUE)) quit(status=10)'
 RUN Rscript -e 'install.packages("thematic", dependencies = TRUE)  ; if (!library(thematic, logical.return=TRUE)) quit(status=10)'
 RUN Rscript -e 'install.packages("RColorBrewer", dependencies = TRUE)  ; if (!library(RColorBrewer, logical.return=TRUE)) quit(status=10)'
+RUN Rscript -e 'install.packages("shinyWidgets", dependencies = TRUE)  ; if (!library(shinyWidgets, logical.return=TRUE)) quit(status=10)'
 
 
 # Expose port
