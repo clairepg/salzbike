@@ -38,7 +38,15 @@ trips <- inner_join(trips_bikers, trips_hikers, by = "edgeuid")
 trips<- rename(trips, edgeUID = edgeuid)
 trips$X.x <- NULL 
 trips$X.y <- NULL
-trips$conflict_index <- trips$total_bikers_normalized * trips$total_hikers_normalized * 100
+
+weighted_geo_mean <- function(a, b, weight=100) {
+  return(weight * (a * b)^(1/3))
+}
+
+trips$conflict_index <- weighted_geo_mean(trips$total_bikers_normalized, trips$total_hikers_normalized)
+# noramlize index to be from 0 to 100 again 
+trips$conflict_index <- normalize(trips$conflict_index) * 100
+
 
 
 
@@ -197,6 +205,7 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
                                 <h4>Strava Metro</h4>
                                 <h4>OpenStreetMap API</h4>
                                <h3>Conflict Index</h3> The conflict index was calculated by normalizing the values of total trips of both the biking and hiking data. Using the normalized data, the conflict index is calculated that returns values from 0 (no conflict) to 100 (maximum conflict). The conflict index is highest when both bikers and hikers have a high number of total trips for a specific edgeUID.
+                               Values of the biking and hiking layer show the same conflict index for the same edgeuid. 
                                <h4>Contact</h4>")
                  )
                  
@@ -420,7 +429,7 @@ server <- function(input, output, session) {
     data_hikers <- joined_hikers()
     
     # If no checkboxes are selected, return original datasets immediately
-    if (!input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox) {
+    if (!input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox) {
       return(list(bikers = data_bikers, hikers = data_hikers))
     }
     
@@ -449,6 +458,12 @@ server <- function(input, output, session) {
       diff_range <- input$diff_range
       data_bikers <- data_bikers %>% filter(height_diff >= diff_range[1] & height_diff <= diff_range[2])
       data_hikers <- data_hikers %>% filter(height_diff >= diff_range[1] & height_diff <= diff_range[2])
+    }
+    # Apply height difference filter
+    if (input$conflict_checkbox) {
+      conflict_range <- input$conflict_range
+      data_bikers <- data_bikers %>% filter(conflict_index >= conflict_range[1] & conflict_index <= conflict_range[2])
+      data_hikers <- data_hikers %>% filter(conflict_index >= conflict_range[1] & conflict_index <= conflict_range[2])
     }
     
     return(list(bikers = data_bikers, hikers = data_hikers))
@@ -480,7 +495,8 @@ server <- function(input, output, session) {
                          "Gesamtanzahl Wanderungen: ", as.character(total_hikers), "<br>",
                          "Gesamtanzahl Radfahrten: ", as.character(total_bikers), "<br>",  "Segment Laenge: ", as.character(round(m)), " m<br>",
                          "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
-                         "Höhendifferenz: ", as.character(round(height_diff)), " m"
+                         "Höhendifferenz: ", as.character(round(height_diff)), " m <br>",
+                         "Konflikt Index ", as.character(round(conflict_index)) 
           ),
           highlightOptions = highlightOptions(color = "yellow", weight = 6)
         ) %>%
@@ -494,7 +510,8 @@ server <- function(input, output, session) {
                          "Gesamtanzahl Wanderungen: ", as.character(total_hikers), "<br>",
                          "Gesamtanzahl Radfahrten: ", as.character(total_bikers), "<br>",  "Segment Laenge: ", as.character(round(m)), " m<br>",
                          "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
-                         "Höhendifferenz: ", as.character(round(height_diff)), " m"
+                         "Höhendifferenz: ", as.character(round(height_diff)), " m <br>",
+                         "Konflikt Index ", as.character(round(conflict_index)) 
           ),
           highlightOptions = highlightOptions(color = "yellow", weight = 6)
         ) %>% 
@@ -520,7 +537,7 @@ server <- function(input, output, session) {
       zoom <- input$map_zoom
       print(paste("zoom:", zoom))
       
-    if (zoom <= 10 ) {
+    if (zoom <= 10  && !input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox) {
       leafletProxy("map") %>%
         hideGroup("bikers") %>%
         hideGroup("hikers") %>%
