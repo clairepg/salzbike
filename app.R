@@ -139,6 +139,8 @@ trails$height_diff <- trails$Z_Max - trails$Z_Min
 trails$km <- trails$Shape_Leng
 trails$m <- trails$km*1000
 trails$Shape_Leng <- NULL
+trails$grade_percent <- (trails$height_diff / trails$m) * 100
+
 # get unique edgeUIDs from hikers and bikers 
 #unique_edgeUIDs <- unique(c(trips_hikers$edgeUID, trips_bikers$edgeUID))
 #trails <- trails %>% filter(edgeUID %in% unique_edgeUIDs)
@@ -496,6 +498,7 @@ server <- function(input, output, session) {
                          "Gesamtanzahl Radfahrten: ", as.character(total_bikers), "<br>",  "Segment Laenge: ", as.character(round(m)), " m<br>",
                          "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
                          "Höhendifferenz: ", as.character(round(height_diff)), " m <br>",
+                         "Grad: ", as.character(round(grade_percent)), " ° <br>",
                          "Konflikt Index ", as.character(round(conflict_index)) 
           ),
           highlightOptions = highlightOptions(color = "yellow", weight = 6)
@@ -511,7 +514,8 @@ server <- function(input, output, session) {
                          "Gesamtanzahl Radfahrten: ", as.character(total_bikers), "<br>",  "Segment Laenge: ", as.character(round(m)), " m<br>",
                          "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
                          "Höhendifferenz: ", as.character(round(height_diff)), " m <br>",
-                         "Konflikt Index ", as.character(round(conflict_index)) 
+                         "Grad: ", as.character(round(grade_percent)), " ° <br>",
+                         "Konflikt Index: ", as.character(round(conflict_index)) 
           ),
           highlightOptions = highlightOptions(color = "yellow", weight = 6)
         ) %>% 
