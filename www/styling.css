@@ -44,7 +44,7 @@ h1, h2, h3, h4 { font-weight: 400; }
 .panel-default {
   /* Appearance */
   background-color: white;
-  padding: 0 10px 10px 10px;
+  padding: 10px 10px 10px 20px;
   cursor: move;
   /* Fade out while not hovering */
   opacity: 1.0;
@@ -53,6 +53,15 @@ h1, h2, h3, h4 { font-weight: 400; }
   color: black;
 }
 
-#controls {
-  padding: 10px 0px 10px 20px;
+.plot-panel {
+  /* Appearance */
+  background-color: white;
+  padding: 10px 10px 10px 10px;
+  cursor: move;
+  /* Fade out while not hovering */
+  opacity: 1.0;
+  zoom: 0.9;
+  transition: opacity 500ms 1s;
+  color: black;
 }
+

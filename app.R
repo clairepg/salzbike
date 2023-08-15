@@ -13,6 +13,7 @@ library(shinythemes)
 library(thematic)
 library(RColorBrewer)
 library(shinyWidgets)
+library(leaflet.extras)
 
 # Normalization function -----------------------------------------------
 normalize <- function(x) {
@@ -146,68 +147,69 @@ trails$grade_percent <- (trails$height_diff / trails$m) * 100
 #unique_edgeUIDs <- unique(c(trips_hikers$edgeUID, trips_bikers$edgeUID))
 #trails <- trails %>% filter(edgeUID %in% unique_edgeUIDs)
 
-#trails <- trails[1:8000, ]
+trails <- trails[1:8000, ]
 #trails_test$edgeUID <- as.integer(trails_test$edgeUID)
 
 # UI ---------------------------------------------------------------------------------
-ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
+ui <- navbarPage("Salzbike",theme = shinytheme("slate"),collapsible = TRUE,
                  tags$head(
-                   tags$link(rel = "stylesheet", type = "text/css", href = "styling.css")
-                 ),
+                   tags$link(rel = "stylesheet", type = "text/css", href = "styling.css"),
+                   tags$script(src = "script.js")
+                   ),
                  tabPanel("Map", 
-                          sidebarLayout(
-                            sidebarPanel(
+                          div(class="outer",
+                            leafletOutput("map", width = "100%", height = "100%"),
+                          
+                            absolutePanel(top = 0, left = 0, class = "panel-default",
+                                          width = "auto", height = "100%",
                               textOutput("clicked_segment"),
                               textOutput("Hoehe"),
-                              checkboxInput("km_checkbox", 
-                                            "Filter for the top km",
-                                            value = FALSE),
+                              tags$h1("Filters"),
                               sliderInput("km_filter", 
                                           "Filter by Kilometer", 
                                           min = 0, 
                                           max = 500, 
                                           value = c(0, 500), 
                                           step = 5),
-                              checkboxInput("altitude_checkbox", 
-                                            "Filter for altitude",
+                              checkboxInput("km_checkbox", 
+                                            "Filter for the top km",
                                             value = FALSE),
                               sliderInput("altitude_range", "Altitude range",
                                           min = 0, max = 3660, value = c(500, 1000), step = 50),
-                              checkboxInput("diff_checkbox", 
-                                            "Filter for height difference",
+                              checkboxInput("altitude_checkbox", 
+                                            "Filter for altitude",
                                             value = FALSE),
                               sliderInput("diff_range", "Height difference range",
                                           min = 0, max = 720, value = c(50, 100), step = 5),
-                              checkboxInput("conflict_checkbox", 
-                                            "Filter for conflict index",
+                              checkboxInput("diff_checkbox", 
+                                            "Filter for height difference",
                                             value = FALSE),
                               sliderInput("conflict_range", "Conflict index range",
                                           min = 0, max = 100, value = c(0, 100), step = 5),
-                              checkboxInput("steepness_checkbox", 
-                                            "Filter for trail steepness",
+                              checkboxInput("conflict_checkbox", 
+                                            "Filter for conflict index",
                                             value = FALSE),
                               sliderInput("steepness_range", "Grade percentage",
                                           min = 0, max = 45, value = c(0, 45), step = 5),
-                              switchInput(inputId = "map_extent", value = FALSE, label = "Filter only map extent"), 
-                              downloadButton("downloadData", "Download Filtered Shapefile"),
-                              fluidRow(
-                                column(5,  plotOutput("hour_plot_bikers", height = "20%")),
-                                column(5, plotOutput("hour_plot_hikers", height = "20%"))
-                              ),
-                              fluidRow(
-                                column(5,  plotOutput("weekday_plot_bikers", height = "20%")),
-                                column(5, plotOutput("weekday_plot_hikers", height = "20%"))
-                              ),
-                              fluidRow(
-                                column(5, plotOutput("month_plot_bikers", height = "100%")),
-                                column(5, plotOutput("month_plot_hikers", height = "100%"))
-                              ),
+                              checkboxInput("steepness_checkbox", 
+                                            "Filter for trail steepness",
+                                            value = FALSE),
+                              materialSwitch(inputId = "map_extent", value = FALSE, label = "Filter only map extent"), 
+                              actionButton("clear_shapes", "Clear Drawn Shapes"),
+                              downloadButton("downloadData", "Download Filtered Shapefile")
                             ),
-                            
-                            mainPanel(
-                              leafletOutput("map", width = "100%", height = "100vh")
+                            absolutePanel(top = 0, left = "20%", class = "plot-panel",
+                                          fluidRow( 
+                                            column(2, plotOutput("hour_plot_bikers", height = "20%")),
+                                            column(2, plotOutput("hour_plot_hikers", height = "20%")),
+                                            column(2, plotOutput("weekday_plot_bikers", height = "20%")),
+                                            column(2, plotOutput("weekday_plot_hikers", height = "20%")),
+                                            column(2, plotOutput("month_plot_bikers", height = "100%")),
+                                            column(2, plotOutput("month_plot_hikers", height = "100%"))
+                                          )
                             )
-                          )
+                      )
+                            
                  ),
                  tabPanel("Info", 
                           HTML("<h3>Data Sources</h3>"),
@@ -222,7 +224,10 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),
                                Values of the biking and hiking layer show the same conflict index for the same edgeuid. "),        
                           HTML("<h3>How to use this Dashboard</h3>"),
                           HTML("The dashboard allows for multiple filtering of the data. It is possible to apply multiple filters at the same time. But it is to note that when applying multiple filters, the filtering is done in the sequence of applying the filters. A bit special is the toggle filter, when applied the current map extent is used to select the map bounds for the then following filters. To get the full trail network again one just needs to untoggle the switch."),
-                          HTML(" <h4>Contact</h4>")     
+                          HTML("<h3>Code</h3>"),
+                          HTML("Code and input data used to generate this Shiny mapping tool are available on "),
+                          tags$a("Github.", href="https://github.com/clairepg/salzbike"),
+                           HTML(" <h4>Contact</h4>")     
                  )
                  
 )
@@ -275,10 +280,12 @@ server <- function(input, output, session) {
         na.color = "transparent"
       )
   })
+  
+ 
   #zoom_level <- reactiveVal(10)  # initialize zoom level to match the initial map zoom
   # Zoom levels ----------------------------------------------------------------
   output$map <- renderLeaflet({
-    leaflet() %>%
+    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
       addProviderTiles("CartoDB.DarkMatter", group = "Carto dark") %>%
       addProviderTiles("CartoDB.Positron", group = "Carto light") %>%
       addTiles(group = "OSM standard") %>%
@@ -286,31 +293,21 @@ server <- function(input, output, session) {
       addLayersControl(baseGroups = c("OSM standard", "Carto dark", "Carto light"),
                        overlayGroups = c("hikers", "bikers", "cluster"),
                        options = layersControlOptions(collapsed = FALSE,
-                                                      defaultBase = "Carto dark"))
+                                                      defaultBase = "Carto dark")) %>% 
+      addDrawToolbar(position = "bottomright",
+                     singleFeature = TRUE, 
+                     polylineOptions = FALSE, 
+                     circleMarkerOptions = FALSE,
+                     circleOptions = FALSE, 
+                     markerOptions = FALSE) %>% 
+      onRender("function(el, x) {
+        var map = this;
+        map.on('draw:created', function(e) {
+          Shiny.setInputValue('drawn_shape', e.layer.toGeoJSON());
+        });
+      }")
   })
   
-  # observe({
-  #   # Check if map zoom value is available
-  #   if (!is.null(input$map_zoom)) {
-  #     
-  #     zoom <- input$map_zoom
-  #     print(paste("zoom:", zoom))
-  #     
-  #     # When zoom level is greater than or equal to 11
-  #     if (zoom >= 11) {
-  #       leafletProxy("map") %>%
-  #         hideGroup("cluster") %>%
-  #         showGroup("bikers") %>%
-  #         showGroup("hikers")
-  #       
-  #     } else if (zoom <= 10 && !input$km_checkbox && !input$altitude_checkbox) {
-  #       leafletProxy("map") %>%
-  #         hideGroup("bikers") %>%
-  #         hideGroup("hikers") %>%
-  #         showGroup("cluster")
-  #     }
-  #   }
-  # })
   # Click Event: add plots -----------------------------------
   click_status <- reactiveVal(0)
   
@@ -437,9 +434,38 @@ server <- function(input, output, session) {
     }
   }, height = 200, width = 200)
   
+ 
 # Combined Filters -------------------------------------------------------------
   captured_bounds <- reactiveVal(NULL)
+  # To store drawn polygons
+  coords_reactive <- reactiveVal()
   
+  # reset drawing ----------------------------------
+  observeEvent(input$clear_shapes, {
+    leafletProxy("map") %>% clearShapes()    
+    coords_reactive(NULL)    
+    session$sendCustomMessage("resetDrawnShape", list())
+  })
+  
+ 
+  # drawn polygon 
+  # gets coordinates from drawn polygon 
+  observe({
+    drawn_data <- input$drawn_shape
+    if (!is.null(drawn_data) && drawn_data$type == "Feature" && !is.null(drawn_data$geometry$coordinates)) {
+      coords_reactive(drawn_data$geometry$coordinates)
+    }
+  })
+  
+  # Print coordinates to console
+  observe({
+    if (!is.null(coords_reactive())) {
+      print(coords_reactive())
+    }
+  })
+  
+
+  # set map extent 
   observeEvent(input$map_extent, {
     if (input$map_extent) {
       captured_bounds(input$map_bounds)
@@ -453,9 +479,10 @@ server <- function(input, output, session) {
     
     data_bikers <- joined_bikers()
     data_hikers <- joined_hikers()
+    drawn_coords <- coords_reactive()
     
     # If no checkboxes are selected, return original datasets immediately
-    if (!input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox  && !input$steepness_checkbox && !input$map_extent) {
+    if (!input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox  && !input$steepness_checkbox && !input$map_extent && is.null(drawn_coords) && input$clear_shapes) {
       return(list(bikers = data_bikers, hikers = data_hikers))
     }
     
@@ -476,6 +503,18 @@ server <- function(input, output, session) {
       data_bikers <- data_bikers %>% filter(st_intersects(geometry, map_polygon, sparse = FALSE))
       data_hikers <- data_hikers %>% filter(st_intersects(geometry, map_polygon, sparse = FALSE))
     }
+   
+    if (!is.null(drawn_coords)) {
+      # Convert the coordinates into an sf polygon
+      drawn_polygon <- st_polygon(list(matrix(unlist(drawn_coords), ncol = 2, byrow = TRUE))) %>%
+        st_sfc() %>%
+        st_set_crs(4326)
+      
+      # Filter polylines based on intersection with the drawn polygon
+      data_bikers <- data_bikers %>% filter(st_intersects(geometry, drawn_polygon, sparse = FALSE))
+      data_hikers <- data_hikers %>% filter(st_intersects(geometry, drawn_polygon, sparse = FALSE))
+    }
+  
     # Apply km filter
     if (input$km_checkbox) {
       km_filter <- input$km_filter
