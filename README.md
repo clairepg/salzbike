@@ -21,4 +21,7 @@ Github repository
   - add AWS access key and secret key to Actions secrets
   - set up Github Actions workflow to built Dockerimage and push to AWS Elastic Beanstalk enviorment 
 
- 
+AWS Elastic Beanstalk 
+- set up application for Docker
+- resources might need to be scalled up
+- AWS user needs to have the correct rights 
