@@ -5,6 +5,8 @@ The dashboard can be found on http://salzbike-env.eba-vpppbp8i.eu-central-1.elas
 
 ## Data Sources 
 The dashboard uses activity data from Strava Metro and road surface information from OpenStreetMap. 
+https://metro.strava.com/
+https://overpass-turbo.eu/
 
 ## Dashboard functionality 
 
