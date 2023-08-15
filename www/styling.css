@@ -3,13 +3,24 @@
     max-width: 100%;
 }
 
-
-body, html {
-             height: 100vh;
-             margin: 0;
-            padding: 0;
-            overflow: hidden;
+div.outer {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  padding: 0;
 }
+
+/* Customize fonts */
+body, label, input, button, select, a{ 
+  font-family: 'Helvetica Neue', Helvetica;
+  
+  
+}
+h1, h2, h3, h4 { font-weight: 400; }
+
 .shiny-output-area {
          height: 100%;
 }
@@ -28,4 +39,20 @@ body, html {
 /* Adjust the font size in sidebar */
 .sidebar {
     font-size: 0.5em; /* adjust as needed */
+}
+
+.panel-default {
+  /* Appearance */
+  background-color: white;
+  padding: 0 10px 10px 10px;
+  cursor: move;
+  /* Fade out while not hovering */
+  opacity: 1.0;
+  zoom: 0.9;
+  transition: opacity 500ms 1s;
+  color: black;
+}
+
+#controls {
+  padding: 10px 0px 10px 20px;
 }

@@ -36,6 +36,7 @@ WORKDIR /salzbike
 # Copy necessary files
 COPY app.R /salzbike/app.R
 COPY data /salzbike/data
+COPY www /salzbike/www
 
 # Install R packages
 # Install R packages
@@ -61,6 +62,7 @@ RUN Rscript -e 'install.packages("htmltools", dependencies = TRUE)  ; if (!libra
 RUN Rscript -e 'install.packages("thematic", dependencies = TRUE)  ; if (!library(thematic, logical.return=TRUE)) quit(status=10)'
 RUN Rscript -e 'install.packages("RColorBrewer", dependencies = TRUE)  ; if (!library(RColorBrewer, logical.return=TRUE)) quit(status=10)'
 RUN Rscript -e 'install.packages("shinyWidgets", dependencies = TRUE)  ; if (!library(shinyWidgets, logical.return=TRUE)) quit(status=10)'
+RUN Rscript -e 'install.packages("leaflet.extras", dependencies = TRUE)  ; if (!library(leaflet.extras, logical.return=TRUE)) quit(status=10)'
 
 
 # Expose port
