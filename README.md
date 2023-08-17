@@ -3,10 +3,15 @@
 Github repository for a the Salzbike repository, which allows for data exploration of biking and hiking data in the federal state Salzburg, Austria. 
 The dashboard can be found on http://salzbike-env.eba-vpppbp8i.eu-central-1.elasticbeanstalk.com/ .
 
-## Data Sources 
+## Data 
+### Sources 
 The dashboard uses activity data from Strava Metro and road surface information from OpenStreetMap. 
 https://metro.strava.com/
 https://overpass-turbo.eu/
+
+### Data preprocessing 
+The downloaded data is in monthly chunks, gets downloaded as zip files, the files get unzipped and merged together. Before the merging process one should check for different naming variations of columns. 
+As the datasets were downloaded in hourly resolution and thus the resoluting dataframe is large (>2 GB), the total rides for each segment were calculated and put into a new dataframe which are the two dataframes which the dashboard works with. 
 
 ## Dashboard functionality 
 
