@@ -195,7 +195,7 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),collapsible = TRUE,
                                             "Filter for trail steepness",
                                             value = FALSE),
                               materialSwitch(inputId = "map_extent", value = FALSE, label = "Filter only map extent"), 
-                              actionButton("clear_shapes", "Clear Drawn Shapes"),
+                              actionButton("reset", "Reset drawing filter"),
                               downloadButton("downloadData", "Download Filtered Shapefile")
                             ),
                             absolutePanel(top = 0, left = "20%", class = "plot-panel",
@@ -299,7 +299,10 @@ server <- function(input, output, session) {
                      polylineOptions = FALSE, 
                      circleMarkerOptions = FALSE,
                      circleOptions = FALSE, 
-                     markerOptions = FALSE) %>% 
+                     markerOptions = FALSE,
+                     editOptions = editToolbarOptions(
+                       edit = FALSE, remove = TRUE
+                     )) %>% 
       onRender("function(el, x) {
         var map = this;
         map.on('draw:created', function(e) {
@@ -439,14 +442,17 @@ server <- function(input, output, session) {
   captured_bounds <- reactiveVal(NULL)
   # To store drawn polygons
   coords_reactive <- reactiveVal()
+  # use a reactiveVal for storing the reset state 
+  resetState <- reactiveVal(FALSE)
   
   # reset drawing ----------------------------------
-  observeEvent(input$clear_shapes, {
-    leafletProxy("map") %>% clearShapes()    
-    coords_reactive(NULL)    
-    session$sendCustomMessage("resetDrawnShape", list())
+  observeEvent(input$reset, {
+    session$sendCustomMessage("clearDrawnItems", message = list())
+    print("clear shape")
+    coords_reactive(NULL)
+    resetState(FALSE)
   })
-  
+
  
   # drawn polygon 
   # gets coordinates from drawn polygon 
@@ -454,13 +460,8 @@ server <- function(input, output, session) {
     drawn_data <- input$drawn_shape
     if (!is.null(drawn_data) && drawn_data$type == "Feature" && !is.null(drawn_data$geometry$coordinates)) {
       coords_reactive(drawn_data$geometry$coordinates)
-    }
-  })
-  
-  # Print coordinates to console
-  observe({
-    if (!is.null(coords_reactive())) {
-      print(coords_reactive())
+      resetState(FALSE) # Set reset state to FALSE when a new shape is drawn.
+      
     }
   })
   
@@ -482,7 +483,7 @@ server <- function(input, output, session) {
     drawn_coords <- coords_reactive()
     
     # If no checkboxes are selected, return original datasets immediately
-    if (!input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox  && !input$steepness_checkbox && !input$map_extent && is.null(drawn_coords) && input$clear_shapes) {
+    if (!input$km_checkbox && !input$altitude_checkbox && !input$diff_checkbox && !input$conflict_checkbox  && !input$steepness_checkbox && !input$map_extent && is.null(drawn_coords) && resetState() == TRUE) {
       return(list(bikers = data_bikers, hikers = data_hikers))
     }
     
