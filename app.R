@@ -143,6 +143,8 @@ trails$m <- trails$km*1000
 trails$Shape_Leng <- NULL
 trails$grade_percent <- (trails$height_diff / trails$m) * 100
 
+study_area <- st_read("data/casestudy/case_area.shp")
+trails <- st_intersection(trails, study_area)
 # get unique edgeUIDs from hikers and bikers 
 #unique_edgeUIDs <- unique(c(trips_hikers$edgeUID, trips_bikers$edgeUID))
 #trails <- trails %>% filter(edgeUID %in% unique_edgeUIDs)
