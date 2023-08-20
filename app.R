@@ -21,13 +21,9 @@ normalize <- function(x) {
 }
 
 # load data ---------------------------------------------------------------
-trips_bikers <- read.csv("data/SegmentStats_Bikers_Bundesland.csv")
-trips_hikers <- read.csv("data/SegmentStats_Hikers_Bundesland.csv")
+trips_bikers <- read.csv("data/Bikingdata_nofilter_SegmentCount.csv")
+trips_hikers <- read.csv("data/Hikingdata_nofilter_SegmentCount.csv")
 
-#km <- read.csv("data/km_Bundesland.csv")
-
-trips_bikers <- rename(trips_bikers, total_bikers = total_trips)
-trips_hikers <- rename(trips_hikers, total_hikers = total_trips)
 
 trips_bikers$edgeUID <- as.integer(trips_bikers$edgeuid)
 trips_hikers$edgeUID <- as.integer(trips_hikers$edgeuid)
@@ -132,14 +128,15 @@ plot_month_hikers <- ggplot(months_hikers, aes(x = month)) +
 # return(wfs_data)
 #}
 # read in trail data from shapefile-------------------------------------------
-trails <- st_read("data/Wegenetz/wegenetz_update.shp")
+#trails <- st_read("data/Wegenetz/wegenetz_update.shp")
+
+trails <- st_read("data/Wegenetz_unfiltered/Wegenetz_unfiltered.shp")
 trails$geometry <- st_zm(trails$geometry)
 trails$edgeUID <- as.integer(trails$edgeUID)
 trails$Max_Slope <-NULL
 trails$Avg_Slope <- NULL
 trails$height_diff <- trails$Z_Max - trails$Z_Min
-trails$km <- trails$Shape_Leng
-trails$m <- trails$km*1000
+trails$km <- trails$m/1000
 trails$Shape_Leng <- NULL
 trails$grade_percent <- (trails$height_diff / trails$m) * 100
 
