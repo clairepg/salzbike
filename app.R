@@ -1,4 +1,3 @@
-Sys.setlocale("LC_ALL", "en_US.UTF-8")
 
 # load libraries ---------------------------------------------------------
 library(shiny)
@@ -14,7 +13,10 @@ library(thematic)
 library(RColorBrewer)
 library(shinyWidgets)
 library(leaflet.extras)
+library(reactlog)
 
+# tell shiny to log all reactivity
+#reactlog_enable()
 # Normalization function -----------------------------------------------
 normalize <- function(x) {
   return ((x - min(x)) / (max(x) - min(x)))
@@ -24,9 +26,6 @@ normalize <- function(x) {
 trips_bikers <- read.csv("data/Bikingdata_nofilter_SegmentCount.csv")
 trips_hikers <- read.csv("data/Hikingdata_nofilter_SegmentCount.csv")
 
-
-trips_bikers$edgeUID <- as.integer(trips_bikers$edgeuid)
-trips_hikers$edgeUID <- as.integer(trips_hikers$edgeuid)
 
 #normalize total_trips columns 
 trips_bikers$total_bikers_normalized <- normalize(trips_bikers$total_bikers)
@@ -56,7 +55,7 @@ hours_hikers <- na.omit(hours_hikers)
 weekdays_bikers <- read.csv("data/Weekdaystats_bikers_Bundesland.csv") 
 weekdays_hikers <- read.csv("data/Weekdaystats_hikers_Bundesland.csv") 
 
-months_bikers <- read.csv("data/Monthlystats_bikers_Bundesland.csv") 
+months_bikers <- read.csv("data/Monthlystats_bikers_Bundsland.csv") 
 months_hikers <- read.csv("data/Monthlystats_hikers_Bundesland.csv")
 # Define the order of the levels
 weekday_levels <- c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
@@ -136,12 +135,14 @@ trails$edgeUID <- as.integer(trails$edgeUID)
 trails$Max_Slope <-NULL
 trails$Avg_Slope <- NULL
 trails$height_diff <- trails$Z_Max - trails$Z_Min
-trails$km <- trails$m/1000
+trails$m <- trails$Shape_Leng
+trails$km <- trails$m * 1000
+#trails$km <- trails$m/1000
 trails$Shape_Leng <- NULL
 trails$grade_percent <- (trails$height_diff / trails$m) * 100
 
-study_area <- st_read("data/casestudy/case_area.shp")
-trails <- st_intersection(trails, study_area)
+#study_area <- st_read("data/casestudy/case_area.shp")
+#trails <- st_intersection(trails, study_area)
 # get unique edgeUIDs from hikers and bikers 
 #unique_edgeUIDs <- unique(c(trips_hikers$edgeUID, trips_bikers$edgeUID))
 #trails <- trails %>% filter(edgeUID %in% unique_edgeUIDs)
@@ -669,3 +670,4 @@ server <- function(input, output, session) {
 
 # Run the Shiny app
 shinyApp(ui, server)
+shiny::reactlogShow()
