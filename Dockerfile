@@ -64,6 +64,7 @@ RUN Rscript -e 'install.packages("RColorBrewer", dependencies = TRUE)  ; if (!li
 RUN Rscript -e 'install.packages("shinyWidgets", dependencies = TRUE)  ; if (!library(shinyWidgets, logical.return=TRUE)) quit(status=10)'
 RUN Rscript -e 'install.packages("leaflet.extras", dependencies = TRUE)  ; if (!library(leaflet.extras, logical.return=TRUE)) quit(status=10)'
 RUN Rscript -e 'install.packages("shinyjs", dependencies = TRUE)  ; if (!library(shinyjs, logical.return=TRUE)) quit(status=10)'
+RUN Rscript -e 'install.packages("feather", dependencies = TRUE)  ; if (!library(feather, logical.return=TRUE)) quit(status=10)'
 
 
 # Expose port

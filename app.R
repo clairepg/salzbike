@@ -14,7 +14,7 @@ library(RColorBrewer)
 library(shinyWidgets)
 library(leaflet.extras)
 library(shinyjs)
-
+library(feather)
 
 
 
@@ -24,40 +24,17 @@ normalize <- function(x) {
 }
 
 # load data ---------------------------------------------------------------
-trips_bikers <- read.csv("data/Bikingdata_nofilter_SegmentCount.csv")
-trips_hikers <- read.csv("data/Hikingdata_nofilter_SegmentCount.csv")
+# use feather instead of read.csv for much faster loading
+trips <- read_feather("data/AllTrips_nofilter_SegmentCount.feather")
 
 
-#normalize total_trips columns 
-trips_bikers$total_bikers_normalized <- normalize(trips_bikers$total_bikers)
-trips_hikers$total_hikers_normalized <- normalize(trips_hikers$total_hikers)
+hours_bikers <- read_feather("data/Hourlystats_bikers_Bundesland.feather") 
+hours_hikers <- read_feather("data/Hourlystats_hikers_Bundesland.feather") 
+weekdays_bikers <- read_feather("data/Weekdaystats_bikers_Bundesland.feather") 
+weekdays_hikers <- read_feather("data/Weekdaystats_hikers_Bundesland.feather") 
 
-trips <- inner_join(trips_bikers, trips_hikers, by = "edgeuid")
-trips<- rename(trips, edgeUID = edgeuid)
-trips$X.x <- NULL 
-trips$X.y <- NULL
-
-weighted_geo_mean <- function(a, b, weight=100) {
-  return(weight * (a * b)^(1/3))
-}
-
-trips$conflict_index <- weighted_geo_mean(trips$total_bikers_normalized, trips$total_hikers_normalized)
-# noramlize index to be from 0 to 100 again 
-trips$conflict_index <- normalize(trips$conflict_index) * 100
-
-
-
-
-hours_bikers <- read.csv("data/Hourlystats_bikers_Bundesland.csv") 
-hours_bikers <- na.omit(hours_bikers)
-hours_bikers$hour <- as.factor(hours_bikers$hour)
-hours_hikers <- read.csv("data/Hourlystats_hikers_Bundesland.csv") 
-hours_hikers <- na.omit(hours_hikers)
-weekdays_bikers <- read.csv("data/Weekdaystats_bikers_Bundesland.csv") 
-weekdays_hikers <- read.csv("data/Weekdaystats_hikers_Bundesland.csv") 
-
-months_bikers <- read.csv("data/Monthlystats_bikers_Bundsland.csv") 
-months_hikers <- read.csv("data/Monthlystats_hikers_Bundesland.csv")
+months_bikers <- read_feather("data/Monthlystats_bikers_Bundsland.feather") 
+months_hikers <- read_feather("data/Monthlystats_hikers_Bundesland.feather")
 # Define the order of the levels
 weekday_levels <- c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 month_levels <- c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
@@ -671,5 +648,6 @@ server <- function(input, output, session) {
   
 }
 
+  shinyApp(ui, server)
 # Run the Shiny app
-shinyApp(ui, server)
+
