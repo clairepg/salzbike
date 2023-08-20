@@ -127,10 +127,10 @@ plot_month_hikers <- ggplot(months_hikers, aes(x = month)) +
 
 # return(wfs_data)
 #}
-# read in trail data from shapefile-------------------------------------------
-#trails <- st_read("data/Wegenetz/wegenetz_update.shp")
+# read in trail data from shapefile------------------------------------------
 
-trails <- st_read("data/Wegenetz_unfiltered/Wegenetz_unfiltered.shp")
+trails <- st_read("data/Wegenetz/wegenetz_update.shp")
+#trails <- st_read("data/Wegenetz_unfiltered/Wegenetz_unfiltered.shp")
 trails$geometry <- st_zm(trails$geometry)
 trails$edgeUID <- as.integer(trails$edgeUID)
 trails$Max_Slope <-NULL
@@ -236,7 +236,35 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),collapsible = TRUE,
 server <- function(input, output, session) {
   thematic_shiny()
   
-
+  
+  # load map as first  ----------------------------------------------------------------
+  output$map <- renderLeaflet({
+    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
+      addProviderTiles("CartoDB.DarkMatter", group = "Carto dark") %>%
+      addProviderTiles("CartoDB.Positron", group = "Carto light") %>%
+      addTiles(group = "OSM standard") %>%
+      setView(lng = 13.055, lat = 47.8095, zoom = 10) %>% 
+      addLayersControl(baseGroups = c("OSM standard", "Carto dark", "Carto light"),
+                       overlayGroups = c("hikers", "bikers", "cluster"),
+                       options = layersControlOptions(collapsed = FALSE,
+                                                      defaultBase = "Carto dark")) %>% 
+      addDrawToolbar(position = "bottomright",
+                     singleFeature = TRUE, 
+                     polylineOptions = FALSE, 
+                     circleMarkerOptions = FALSE,
+                     circleOptions = FALSE, 
+                     markerOptions = FALSE,
+                     editOptions = editToolbarOptions(
+                       edit = FALSE, remove = TRUE
+                     )) %>% 
+      onRender("function(el, x) {
+        var map = this;
+        map.on('draw:created', function(e) {
+          Shiny.setInputValue('drawn_shape', e.layer.toGeoJSON());
+        });
+      }")
+  })
+  
 # Join df with shapefile ----------------------------------------------------
   # Join trips_bikers with wfs_data based on edgeuid or edgeUID
   joined_bikers <- reactive({
@@ -281,34 +309,7 @@ server <- function(input, output, session) {
   })
   
  
-  #zoom_level <- reactiveVal(10)  # initialize zoom level to match the initial map zoom
-  # Zoom levels ----------------------------------------------------------------
-  output$map <- renderLeaflet({
-    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
-      addProviderTiles("CartoDB.DarkMatter", group = "Carto dark") %>%
-      addProviderTiles("CartoDB.Positron", group = "Carto light") %>%
-      addTiles(group = "OSM standard") %>%
-      setView(lng = 13.055, lat = 47.8095, zoom = 10) %>% 
-      addLayersControl(baseGroups = c("OSM standard", "Carto dark", "Carto light"),
-                       overlayGroups = c("hikers", "bikers", "cluster"),
-                       options = layersControlOptions(collapsed = FALSE,
-                                                      defaultBase = "Carto dark")) %>% 
-      addDrawToolbar(position = "bottomright",
-                     singleFeature = TRUE, 
-                     polylineOptions = FALSE, 
-                     circleMarkerOptions = FALSE,
-                     circleOptions = FALSE, 
-                     markerOptions = FALSE,
-                     editOptions = editToolbarOptions(
-                       edit = FALSE, remove = TRUE
-                     )) %>% 
-      onRender("function(el, x) {
-        var map = this;
-        map.on('draw:created', function(e) {
-          Shiny.setInputValue('drawn_shape', e.layer.toGeoJSON());
-        });
-      }")
-  })
+
   
   # Click Event: add plots -----------------------------------
   click_status <- reactiveVal(0)
