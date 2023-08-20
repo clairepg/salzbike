@@ -148,11 +148,12 @@ trails <- st_intersection(trails, study_area)
 #unique_edgeUIDs <- unique(c(trips_hikers$edgeUID, trips_bikers$edgeUID))
 #trails <- trails %>% filter(edgeUID %in% unique_edgeUIDs)
 
-trails <- trails[1:8000, ]
+#trails <- trails[1:8000, ]
 #trails_test$edgeUID <- as.integer(trails_test$edgeUID)
 
 # UI ---------------------------------------------------------------------------------
 ui <- navbarPage("Salzbike",theme = shinytheme("slate"),collapsible = TRUE,
+                 useShinyjs(),
                  tags$head(
                    tags$link(rel = "stylesheet", type = "text/css", href = "styling.css"),
                    tags$script(src = "script.js")
@@ -257,14 +258,15 @@ server <- function(input, output, session) {
                      circleOptions = FALSE, 
                      markerOptions = FALSE,
                      editOptions = editToolbarOptions(
-                       edit = FALSE, remove = TRUE
-                     )) %>% 
-      onRender("function(el, x) {
-        var map = this;
-        map.on('draw:created', function(e) {
-          Shiny.setInputValue('drawn_shape', e.layer.toGeoJSON());
-        });
-      }")
+                       edit = FALSE, remove = TRUE               )) 
+    # %>% 
+      # onRender("function(el, x) {
+      #   var map = this;
+      #   map.on('draw:created', function(e) {
+      #     Shiny.setInputValue('drawn_shape', e.layer.toGeoJSON());
+      #   });
+      # }"
+      
   })
   
 # Join df with shapefile ----------------------------------------------------
