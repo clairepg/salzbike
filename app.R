@@ -120,7 +120,12 @@ basemap <- leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
     clusterOptions = markerClusterOptions(), group = "cluster"
   ) %>% 
   addPolylines(data = joined_bikers, group = "bikers") %>%
-  hideGroup("bikers") %>%  # Explicitly hide bikers group during initialization
+  hideGroup("bikers") %>%  
+  addDrawToolbar(position = "bottomright", 
+                 polylineOptions = FALSE, 
+                 circleOptions = FALSE, 
+                 markerOptions = FALSE, 
+                 circleMarkerOptions = FALSE) %>% # Explicitly hide bikers group during initialization
    onRender("function(el, x) {
   var map = this;
   map.on('draw:created', function(e) {
