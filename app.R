@@ -125,7 +125,8 @@ basemap <- leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
                  polylineOptions = FALSE, 
                  circleOptions = FALSE, 
                  markerOptions = FALSE, 
-                 circleMarkerOptions = FALSE) %>% # Explicitly hide bikers group during initialization
+                 circleMarkerOptions = FALSE, 
+                 editOptions = editToolbarOptions(remove = TRUE)) %>% # Explicitly hide bikers group during initialization
    onRender("function(el, x) {
   var map = this;
   map.on('draw:created', function(e) {
@@ -403,7 +404,8 @@ server <- function(input, output, session) {
             !input$diff_checkbox && 
             !input$conflict_checkbox && 
             !input$steepness_checkbox && 
-            !input$map_extent) {
+            !input$map_extent && 
+            !is.null(coords_reactive)) {
           leafletProxy("map") %>%
             hideGroup("bikers") %>%
             hideGroup("hikers") %>%
@@ -530,6 +532,7 @@ server <- function(input, output, session) {
       leafletProxy("map") %>%
         clearShapes() %>%
         clearMarkers() %>%
+        hideGroup("cluster") %>% 
         addPolylines(
           group = "bikers",
           data = filtered_bikers_data,
@@ -565,7 +568,9 @@ server <- function(input, output, session) {
         addLayersControl(baseGroups = c("OSM standard", "Carto dark", "Carto light"),
                          overlayGroups = c("hikers", "bikers", "cluster"),
                          options = layersControlOptions(collapsed = FALSE,
-                                                        defaultBase = "Carto dark"))
+                                                        defaultBase = "Carto dark")) %>% 
+        showGroup("bikers") %>% 
+        showGroup("hikers")
 
     
     
