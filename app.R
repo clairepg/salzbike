@@ -15,8 +15,7 @@ library(shinyWidgets)
 library(leaflet.extras)
 library(shinyjs)
 library(feather)
-library(tictoc)
-library(profvis)
+library(htmlwidgets)
 
 
 #1.0 load statistics data ---------------------------------------------------------------
@@ -107,7 +106,28 @@ color_hike <- colorNumeric(
   )
 
 
-
+basemap <- leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
+  addProviderTiles("CartoDB.DarkMatter", group = "Carto dark") %>%
+  addProviderTiles("CartoDB.Positron", group = "Carto light") %>%
+  addTiles(group = "OSM standard") %>%
+  setView(lng = 13.055, lat = 47.8095, zoom = 9) %>% 
+  addLayersControl(baseGroups = c("OSM standard", "Carto dark", "Carto light"),
+                   overlayGroups = c("bikers", "cluster"),
+                   options = layersControlOptions(collapsed = FALSE,
+                                                  defaultBase = "Carto dark")) %>% 
+  addCircleMarkers(
+    data = st_coordinates(st_startpoint(joined_bikers$geometry)),
+    clusterOptions = markerClusterOptions(), group = "cluster"
+  ) %>% 
+  addPolylines(data = joined_bikers, group = "bikers") %>%
+  hideGroup("bikers") %>%  # Explicitly hide bikers group during initialization
+   onRender("function(el, x) {
+  var map = this;
+  map.on('draw:created', function(e) {
+    Shiny.setInputValue('drawn_shape', e.layer.toGeoJSON());
+  });
+}"
+ )            
 
 # UI ---------------------------------------------------------------------------------
 ui <- navbarPage("Salzbike",theme = shinytheme("slate"),collapsible = TRUE,
@@ -196,44 +216,9 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),collapsible = TRUE,
 # Server logic -----------------------------------------------------------------
 server <- function(input, output, session) {
   thematic_shiny() # for setting the plots & etc. to the same shiny theme 
-# 1. base map  ----------------------------------------------------------------
-  # load map first 
-  output$map <- renderLeaflet({
-    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
-      addProviderTiles("CartoDB.DarkMatter", group = "Carto dark") %>%
-      addProviderTiles("CartoDB.Positron", group = "Carto light") %>%
-      addTiles(group = "OSM standard") %>%
-      setView(lng = 13.055, lat = 47.8095, zoom = 10) %>% 
-      addLayersControl(baseGroups = c("OSM standard", "Carto dark", "Carto light"),
-                       overlayGroups = c("hikers", "bikers", "cluster"),
-                       options = layersControlOptions(collapsed = FALSE,
-                                                      defaultBase = "Carto dark")) %>% 
-      addDrawToolbar(position = "bottomright",
-                     singleFeature = TRUE, 
-                     polylineOptions = FALSE, 
-                     circleMarkerOptions = FALSE,
-                     circleOptions = FALSE, 
-                     markerOptions = FALSE,
-                     editOptions = editToolbarOptions(
-                       edit = FALSE, remove = TRUE               )) %>% 
-      addCircleMarkers(
-        data = st_coordinates(st_startpoint(joined_bikers$geometry)),
-        clusterOptions = markerClusterOptions(), group = "cluster"
-      ) 
-    # %>% 
-      # onRender("function(el, x) {
-      #   var map = this;
-      #   map.on('draw:created', function(e) {
-      #     Shiny.setInputValue('drawn_shape', e.layer.toGeoJSON());
-      #   });
-      # }"
-      
-  })
- 
-  
 
-
-  
+  # output base map ------------------------------------------------------------
+  output$map <- renderLeaflet(basemap)
 # 2. Click Event: add plots ------------------------------------------------------
   click_status <- reactiveVal(0)
   
