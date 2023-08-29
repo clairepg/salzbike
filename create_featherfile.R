@@ -2,12 +2,15 @@
 trips_bikers <- read.csv("data/Bikingdata_nofilter_SegmentCount.csv")
 trips_hikers <- read.csv("data/Hikingdata_nofilter_SegmentCount.csv")
 
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
 #normalize total_trips columns 
 trips_bikers$total_bikers_normalized <- normalize(trips_bikers$total_bikers)
 trips_hikers$total_hikers_normalized <- normalize(trips_hikers$total_hikers)
 
 trips <- inner_join(trips_bikers, trips_hikers, by = "edgeuid")
-trips<- rename(trips, edgeUID = edgeuid)
+#trips<- rename(trips, edgeUID = edgeuid)
 trips$X.x <- NULL 
 trips$X.y <- NULL
 
@@ -19,7 +22,7 @@ trips$conflict_index <- weighted_geo_mean(trips$total_bikers_normalized, trips$t
 # noramlize index to be from 0 to 100 again 
 trips$conflict_index <- normalize(trips$conflict_index) * 100
 
-write_feather(trips_bikers, "data/AllTrips_nofilter_SegmentCount.feather")
+write_feather(trips, "data/AllTrips_nofilter_SegmentCount.feather")
 
 
 # ------------------------------------------------------------------------------
