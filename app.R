@@ -477,11 +477,11 @@ server <- function(input, output, session) {
       km_filter <- input$km_filter
       data_bikers <- data_bikers %>% 
         arrange(desc(bikers)) %>% 
-        mutate(cumulative_km = cumsum(km)) %>% 
+        mutate(cumulative_km = cumsum(m)) %>% 
         filter(cumulative_km <= km_filter[2])
       data_hikers <- data_hikers %>% 
         arrange(desc(hikers)) %>% 
-        mutate(cumulative_km = cumsum(km)) %>% 
+        mutate(cumulative_km = cumsum(m)) %>% 
         filter(cumulative_km <= km_filter[2])
     }
     
