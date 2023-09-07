@@ -47,32 +47,40 @@ months_hikers$month <- factor(months_hikers$month, levels = month_levels, ordere
 
 plot_hour_bikers <- ggplot(hours_bikers, aes(x = hour)) +
   geom_bar(stat = "count") +
-  ggtitle("Overall Distribution of Hours for Bikers")
+  ggtitle("Overall Distribution of\nHours for Bikers") +
+  theme(plot.title = element_text(size = 10)) # Adjust the size value as per your preference
 
 # Plot for overall distribution of hours for hikers
 plot_hour_hikers <- ggplot(hours_hikers, aes(x = hour)) +
   geom_bar(stat = "count") +
-  ggtitle("Overall Distribution of Hours for Hikers")
+  ggtitle("Overall Distribution of\nHours for Hikers") +
+  theme(plot.title = element_text(size = 10))
 
 # Plot for overall distribution of weekdays for bikers
 plot_weekday_bikers <- ggplot(weekdays_bikers, aes(x = weekday)) +
   geom_bar(stat = "count") +
-  ggtitle("Overall Distribution of Weekdays for Bikers")
+  ggtitle("Overall Distribution of\nWeekdays for Bikers") +
+  theme(plot.title = element_text(size = 10))
 
 # Plot for overall distribution of weekdays for hikers
 plot_weekday_hikers <- ggplot(weekdays_hikers, aes(x = weekday)) +
   geom_bar(stat = "count") +
-  ggtitle("Overall Distribution of Weekdays for Hikers")
+  ggtitle("Overall Distribution of\nWeekdays for Hikers") +
+  theme(plot.title = element_text(size = 10))
 
 # Plot for overall distribution of months for bikers
 plot_month_bikers <- ggplot(months_bikers, aes(x = month)) +
   geom_bar(stat = "count") +
-  ggtitle("Overall Distribution of Months for Bikers")
+  ggtitle("Overall Distribution of\n Months for Bikers") +
+  theme(plot.title = element_text(size = 10))+
+  scale_x_discrete(labels = function(x) substr(month.abb[match(x, month.name)], 1, 1))
 
 # Plot for overall distribution of months for hikers
 plot_month_hikers <- ggplot(months_hikers, aes(x = month)) +
   geom_bar(stat = "count") +
-  ggtitle("Overall Distribution of Months for Hikers")
+  ggtitle("Overall Distribution of\nMonths for Hikers") +
+  theme(plot.title = element_text(size = 10)) +
+  scale_x_discrete(labels = function(x) substr(month.abb[match(x, month.name)], 1, 1))
 
 
 # 2. Read in trail data from shapefile------------------------------------------
@@ -288,7 +296,8 @@ server <- function(input, output, session) {
       # Render the plot for the selected edgeuid
       ggplot(selected_hour_bikers(), aes(x = hour, y = total_trips)) +
         geom_bar(stat = "identity") +
-        ggtitle("Biker Hour Plot")
+        ggtitle("Biker Hour Plot") +
+        theme(plot.title = element_text(size = 10))
     }
   }, height = 200, width = 200)
   
@@ -300,7 +309,8 @@ server <- function(input, output, session) {
       # Render the plot for the selected edgeuid
       ggplot(selected_hour_hikers(), aes(x = hour, y = total_trips)) +
         geom_bar(stat = "identity") +
-        ggtitle("Hiker Hour Plot")
+        ggtitle("Hiker Hour Plot") +
+        theme(plot.title = element_text(size = 10))
     }
   }, height = 200, width = 200)
   
@@ -312,7 +322,8 @@ server <- function(input, output, session) {
       # Render the plot for the selected edgeuid
       ggplot(selected_weekday_bikers(), aes(x = weekday, y = total_trips)) +
         geom_bar(stat = "identity") +
-        ggtitle("Biker Weekday Plot")
+        ggtitle("Biker Weekday Plot") +
+        theme(plot.title = element_text(size = 10))
     }
   }, height = 200, width = 200)
   
@@ -324,7 +335,8 @@ server <- function(input, output, session) {
       # Render the plot for the selected edgeuid
       ggplot(selected_weekday_hikers(), aes(x = weekday, y = total_trips)) +
         geom_bar(stat = "identity") +
-        ggtitle("Hiker Weekday Plot")
+        ggtitle("Hiker Weekday Plot") +
+        theme(plot.title = element_text(size = 10))
     }
   }, height = 200, width = 200)
   
@@ -335,7 +347,9 @@ server <- function(input, output, session) {
       req(selected_month_bikers())
       ggplot(selected_month_bikers(), aes(x = month, y = total_trips)) +
         geom_bar(stat = "identity") +
-        ggtitle("Biker Month Plot")
+        ggtitle("Biker Month Plot") +
+        theme(plot.title = element_text(size = 10))+
+        scale_x_discrete(labels = function(x) substr(month.abb[match(x, month.name)], 1, 1))
     }
   }, height = 200, width = 200)
   
@@ -347,7 +361,9 @@ server <- function(input, output, session) {
       # Render the plot for the selected edgeuid
       ggplot(selected_month_hikers(), aes(x = month, y = total_trips)) +
         geom_bar(stat = "identity") +
-        ggtitle("Hiker Month Plot")
+        ggtitle("Hiker Month Plot") +
+        theme(plot.title = element_text(size = 10)) +
+        scale_x_discrete(labels = function(x) substr(month.abb[match(x, month.name)], 1, 1))
     }
   }, height = 200, width = 200)
   
@@ -543,8 +559,8 @@ server <- function(input, output, session) {
                          "Gesamtanzahl Wanderungen: ", as.character(hikers), "<br>",
                          "Gesamtanzahl Radfahrten: ", as.character(bikers), "<br>",  "Segment Laenge: ", as.character(round(m)), " m<br>",
                          "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
+                         "Niedrigster Punkt: ", as.character(round(Z_Min)), " m ü.M.<br>",
                          "Höhendifferenz: ", as.character(round(h_diff)), " m <br>",
-                         "Durchschnitt Grad: ", as.character(round(grade)), " ° <br>",
                          "Konflikt Index ", as.character(round(conflict)) 
           ),
           highlightOptions = highlightOptions(color = "yellow", weight = 6)
@@ -557,10 +573,11 @@ server <- function(input, output, session) {
           layerId = ~edgeuid,
           popup = ~paste("Edgeuid: ", as.character(edgeuid), "<br>",
                          "Gesamtanzahl Wanderungen: ", as.character(hikers), "<br>",
-                         "Gesamtanzahl Radfahrten: ", as.character(bikers), "<br>",  "Segment Laenge: ", as.character(round(m)), " m<br>",
+                         "Gesamtanzahl Radfahrten: ", as.character(bikers), "<br>", 
+                         "Segment Laenge: ", as.character(round(m)), " m<br>",
                          "Höchster Punkt: ", as.character(round(Z_Max)), " m ü.M.<br>",
+                         "Niedrigster Punkt: ", as.character(round(Z_Min)), " m ü.M.<br>",
                          "Höhendifferenz: ", as.character(round(h_diff)), " m <br>",
-                         "Durchschnittlich Grad: ", as.character(round(grade)), " ° <br>",
                          "Konflikt Index: ", as.character(round(conflict)) 
           ),
           highlightOptions = highlightOptions(color = "yellow", weight = 6)
@@ -569,6 +586,20 @@ server <- function(input, output, session) {
                          overlayGroups = c("hikers", "bikers", "cluster"),
                          options = layersControlOptions(collapsed = FALSE,
                                                         defaultBase = "Carto dark")) %>% 
+        addLegend(
+          position = "bottomright",
+          pal = color_bike, 
+          values = joined_bikers$bikers,
+          title = "Bikers Legend",
+          opacity = 1
+        ) %>%
+        addLegend(
+          position = "bottomright",
+          pal = color_hike, 
+          values = joined_hikers$hikers,
+          title = "Hikers Legend",
+          opacity = 1
+        ) %>% 
         showGroup("bikers") %>% 
         showGroup("hikers")
 
