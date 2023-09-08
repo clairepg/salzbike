@@ -16,6 +16,7 @@ library(leaflet.extras)
 library(shinyjs)
 library(feather)
 library(htmlwidgets)
+library(magick)
 
 
 #1.0 load statistics data ---------------------------------------------------------------
@@ -206,23 +207,55 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),collapsible = TRUE,
                             
                  ),
                  tabPanel("Info", 
-                          HTML("<h3>Data Sources</h3>"),
-                          HTML(" <h4>Strava Metro</h4>"),
-                          tags$img(src = "strava_logo.png", height = "100px", width = "100px"),
-                          HTML("<br> The activity data is from Strava Metro. A service by Strava, a popular platform for athletes to upload their running, cycling, etc. activities. The data used by this application consists of biking data from 2019, 2020, 2021 and 2022. Additionally walking data (includes running, hiking, walking) from 2019,2020 and 2021."),
-                          HTML("<h4>OpenStreetMap API</h4>"),
-                          tags$img(src = "Openstreetmap_logo.svg.png", height = "100px", width = "100px"),  # Adjust the height and width as necessary
-                          HTML("<br> To extract activity data from forest roads, trails and dirt tracks, road surface data from OpenStreetMap was utilized to delete data from asphalt roads from the analyzed data. The road surface data from OpenStreetMap is not 100% accurate so it can happen that data from normal streets is also included in the shown data."),
-                          HTML("<h3>Conflict Index</h3>"),
-                          HTML(" The conflict index was calculated by normalizing the values of total trips of both the biking and hiking data. Using the normalized data, the conflict index is calculated that returns values from 0 (no conflict) to 100 (maximum conflict). The conflict index is highest when both bikers and hikers have a high number of total trips for a specific edgeUID.
-                               Values of the biking and hiking layer show the same conflict index for the same edgeuid. "),        
-                          HTML("<h3>How to use this Dashboard</h3>"),
-                          HTML("The dashboard allows for multiple filtering of the data. It is possible to apply multiple filters at the same time. But it is to note that when applying multiple filters, the filtering is done in the sequence of applying the filters. A bit special is the toggle filter, when applied the current map extent is used to select the map bounds for the then following filters. To get the full trail network again one just needs to untoggle the switch."),
-                          HTML("<h3>Code</h3>"),
-                          HTML("Code and input data used to generate this Shiny mapping tool are available on "),
-                          tags$a("Github.", href="https://github.com/clairepg/salzbike"),
-                           HTML(" <h4>Contact</h4>")     
+                          HTML("
+       <div style='margin: 10px; padding: 10px;'>
+       
+         <h3>How to use this Dashboard</h3>
+         <p>
+           The dashboard displays activity data of hiking and biking, recorded by Strava users over the years 2019-2022. The display of hiking and biking layers can be toggled on the top right corner. The temporal distribution of the data displayed is shown at the beginning in the plots at the top. When clicking on a segment, further information of the segment is displayed in a popup, regarding total activity numbers and segment attributes such as height, length, etc., and the plots at the top show the temporal distribution of all activities recorded on that segment. Additionally, the dashboard allows for multiple filtering of the data.
+         </p>
+         <ul>
+           <li>The top kilometer filter filters the data according to the trails with the most activity e.g., select the top 200 km with the most rides.</li>
+           <li> The altitude filter uses the highest point of each segment for filtering </li>
+           <li>The height difference filters for the height meters overcome in the segments.</li>
+           <li>A special feature is the toggle filter. When applied, the current map extent is used to select the map bounds for the subsequent filters. To restore the full trail network, simply untoggle the switch.</li>
+         </ul>
+         
+         
+         <h3>Conflict Index</h3>
+         <p>
+           The conflict index is derived by normalizing the total trips values from both the biking and hiking datasets. This index ranges from 0 (no conflict) to 100 (maximum conflict), with the highest conflict occurring when both bikers and hikers record a high number of total trips for a specific edgeUID. It's important to note that both the biking and hiking layers display the same conflict index for the corresponding edgeuid.
+         </p>
+
+         <h3>Code</h3>
+         <p>Discover the code and input data that were utilized to develop this Shiny mapping tool on 
+           <a href='https://github.com/clairepg/salzbike' target='_blank'>Github</a>.
+         </p>
+         
+         <h3>Data Sources</h3>
+         
+         <div style='display: flex; align-items: start; margin-bottom: 20px;'>
+           <img src='strava_logo.png' style='margin-right: 20px; width: 100px; height: 100px;'>
+           <div>
+             <h4>Strava Metro</h4>
+             <p>The activity data is from Strava Metro, a service by Strava where athletes can upload their running, cycling, etc., activities. The data utilized by this application includes biking data from 2019 to 2022 and walking data (which encompasses running, hiking, walking) from 2019 to 2021.</p>
+           </div>
+         </div>
+         
+         <div style='display: flex; align-items: start; margin-bottom: 20px;'>
+           <img src='Openstreetmap_logo.svg.png' style='margin-right: 20px; width: 100px; height: 100px;'>
+           <div>
+             <h4>OpenStreetMap API</h4>
+             <p>Data from forest roads, trails, and dirt tracks was extracted using the OpenStreetMap API to exclude data from asphalt roads from the analysis. Note that the road surface data from OpenStreetMap is not 100% accurate, so data from regular streets might also be included in the displayed data.</p>
+           </div>
+         </div>
+         
+         <h4>Contact</h4>
+
+       </div>
+       ")
                  )
+                 
                  
 )
 
