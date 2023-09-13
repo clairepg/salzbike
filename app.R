@@ -15,8 +15,8 @@ library(shinyWidgets)
 library(leaflet.extras)
 library(shinyjs)
 library(feather)
-library(htmlwidgets)
-library(magick)
+#library(htmlwidgets)
+#library(magick)
 
 
 #1.0 load statistics data ---------------------------------------------------------------
