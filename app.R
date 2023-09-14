@@ -15,7 +15,7 @@ library(shinyWidgets)
 library(leaflet.extras)
 library(shinyjs)
 library(feather)
-#library(htmlwidgets)
+library(htmlwidgets)
 #library(magick)
 
 
