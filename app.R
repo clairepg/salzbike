@@ -16,7 +16,7 @@ library(leaflet.extras)
 library(shinyjs)
 library(feather)
 library(htmlwidgets)
-#library(magick)
+
 
 
 #1.0 load statistics data ---------------------------------------------------------------
@@ -90,7 +90,7 @@ plot_month_hikers <- ggplot(months_hikers, aes(x = month)) +
 # merged with activity data both hikers and bikers 
 # terrain features from 5m dgm 
 # code in which Shapefile is preprocessed: create_shapefile.R
-trails <- st_read("data/Wegenetz/Wegenetz_withtrips.shp")
+trails <- st_read("data/Wegenetz/Wegenetz_studyarea_withtrips_09_23.shp")
 
 #trails <- trails[1:8000, ]
 
@@ -526,11 +526,11 @@ server <- function(input, output, session) {
       km_filter <- input$km_filter
       data_bikers <- data_bikers %>% 
         arrange(desc(bikers)) %>% 
-        mutate(cumulative_km = cumsum(m)) %>% 
+        mutate(cumulative_km = cumsum(km)) %>% 
         filter(cumulative_km <= km_filter[2])
       data_hikers <- data_hikers %>% 
         arrange(desc(hikers)) %>% 
-        mutate(cumulative_km = cumsum(m)) %>% 
+        mutate(cumulative_km = cumsum(km)) %>% 
         filter(cumulative_km <= km_filter[2])
     }
     
@@ -581,6 +581,7 @@ server <- function(input, output, session) {
       leafletProxy("map") %>%
         clearShapes() %>%
         clearMarkers() %>%
+        clearControls() %>%
         hideGroup("cluster") %>% 
         addPolylines(
           group = "bikers",

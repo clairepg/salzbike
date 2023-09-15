@@ -66,7 +66,6 @@ RUN Rscript -e 'install.packages("leaflet.extras", dependencies = TRUE)  ; if (!
 RUN Rscript -e 'install.packages("shinyjs", dependencies = TRUE)  ; if (!library(shinyjs, logical.return=TRUE)) quit(status=10)'
 RUN Rscript -e 'install.packages("feather", dependencies = TRUE)  ; if (!library(feather, logical.return=TRUE)) quit(status=10)'
 RUN Rscript -e 'install.packages("htmlwidgets", dependencies = TRUE)  ; if (!library(htmlwidgets, logical.return=TRUE)) quit(status=10)'
-#RUN Rscript -e 'install.packages("magick", dependencies = TRUE)  ; if (!library(magick, logical.return=TRUE)) quit(status=10)'
 
 
 # Expose port
