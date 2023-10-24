@@ -90,9 +90,9 @@ plot_month_hikers <- ggplot(months_hikers, aes(x = month)) +
 # merged with activity data both hikers and bikers 
 # terrain features from 5m dgm 
 # code in which Shapefile is preprocessed: create_shapefile.R
-trails <- st_read("data/Wegenetz/Wegenetz_studyarea_withtrips_09_23.shp")
+trails <- st_read("data/Wegenetz/Wegenetz_small.shp") 
 
-#trails <- trails[1:8000, ]
+#trails_small <- trails[1:5000, ]
 
 # 3. Create the origin for the Polylines ---------------------------------------
 joined_bikers <- trails
@@ -190,8 +190,10 @@ ui <- navbarPage("Salzbike",theme = shinytheme("slate"),collapsible = TRUE,
                                             "Filter for trail steepness",
                                             value = FALSE),
                               materialSwitch(inputId = "map_extent", value = FALSE, label = "Filter only map extent"), 
-                              actionButton("reset", "Reset drawing filter"),
-                              downloadButton("downloadData", "Download Filtered Shapefile")
+                              div(actionButton("reset", "Reset drawing filter"), style = "margin-bottom: 10px;"),
+                              div(downloadButton("downloadBikingData", "Download Filtered Biking Shapefile"), style = "margin-bottom: 10px;"),
+                              div(downloadButton("downloadHikingData", "Download Filtered Hiking Shapefile"))
+                              
                             ),
                             absolutePanel(top = 0, left = "20%", class = "plot-panel",
                                           fluidRow( 
@@ -566,6 +568,7 @@ server <- function(input, output, session) {
 
   # define as reactive value for download later
   filtered_bikers <- reactiveVal()
+  filtered_hikers <- reactiveVal()
   
 # observe block applying filters
 
@@ -577,6 +580,7 @@ server <- function(input, output, session) {
     
     #extra line for download data
     filtered_bikers(combined_filtered_data()$bikers)
+    filtered_hikers(combined_filtered_data()$hikers)
     
       leafletProxy("map") %>%
         clearShapes() %>%
@@ -645,7 +649,7 @@ server <- function(input, output, session) {
 
   
 # Download function ----------------------------------------------------------
-  output$downloadData <- downloadHandler(
+  output$downloadBikingData <- downloadHandler(
     filename = function() {
       paste("filtered_data", Sys.Date(), ".zip", sep = "")
     },
@@ -656,17 +660,60 @@ server <- function(input, output, session) {
       filtered_sf$X <- NULL 
       filtered_sf$Z_Min <- NULL 
       
-      # Write the shapefile to a temporary directory
-      temp_dir <- tempdir()
-      sf::st_write(filtered_sf, paste0(temp_dir, "/filtered_data.shp"))
+      # Create a unique path for the shapefile
+      unique_path <- tempfile("filtered_biking_data")
+      unique_shp <- paste0(unique_path, ".shp")
       
-      # Zip the shapefile components
-      zip(zipfile = file, files = list.files(temp_dir, full.names = TRUE))
+      # Write the shapefile to the unique path
+      sf::st_write(filtered_sf, unique_shp)
+      
+      # Define the directory of the shapefile
+      temp_dir <- dirname(unique_path)
+      
+      # Use the system's zip command
+      files <- list.files(temp_dir, pattern = "filtered_biking_data*", full.names = TRUE)
+      file_names <- basename(files)
+      cmd <- sprintf("zip %s -j %s", shQuote(file), paste(shQuote(files), collapse = " "))
+      system(cmd)
     },
     
     contentType = "application/zip"
   )
-
+  
+  
+  output$downloadHikingData <- downloadHandler(
+    filename = function() {
+      paste("filtered_data", Sys.Date(), ".zip", sep = "")
+    },
+    
+    content = function(file) {
+      # Assuming the filtered shapefile is stored in a reactive called filtered_data()
+      filtered_sf <- filtered_hikers()
+      filtered_sf$X <- NULL 
+      filtered_sf$Z_Min <- NULL 
+      
+      # Create a unique path for the shapefile
+      unique_path <- tempfile("filtered_hiking_data")
+      unique_shp <- paste0(unique_path, ".shp")
+      
+      # Write the shapefile to the unique path
+      sf::st_write(filtered_sf, unique_shp)
+      
+      # Define the directory of the shapefile
+      temp_dir <- dirname(unique_path)
+      
+      # Use the system's zip command
+      files <- list.files(temp_dir, pattern = "filtered_hiking_data*", full.names = TRUE)
+      file_names <- basename(files)
+      cmd <- sprintf("zip %s -j %s", shQuote(file), paste(shQuote(files), collapse = " "))
+      system(cmd)
+    },
+    
+    contentType = "application/zip"
+  )
+  
+  
+  
   
 }
 
