@@ -3,7 +3,27 @@ FROM rocker/shiny:latest
 
 # system libraries of general use
 ## install debian packages
-
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libcairo2-dev \
+    libsqlite3-dev \
+    libmariadbd-dev \
+    libpq-dev \
+    libssh2-1-dev \
+    unixodbc-dev \
+    libudunits2-dev \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
+    libpoppler-cpp-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libfontconfig1-dev \
+    libjpeg-dev \
+    libpng-dev
 
 ## update system libraries
 RUN apt-get update && \

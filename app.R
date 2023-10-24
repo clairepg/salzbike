@@ -90,8 +90,8 @@ plot_month_hikers <- ggplot(months_hikers, aes(x = month)) +
 # merged with activity data both hikers and bikers 
 # terrain features from 5m dgm 
 # code in which Shapefile is preprocessed: create_shapefile.R
-trails <- st_read("data/Wegenetz/Wegenetz_small.shp") 
-
+#trails <- st_read("data/Wegenetz/Wegenetz_small.shp") 
+trails <- st_read("data/Wegenetz/Wegenetz_raw_activity_studyarea.shp") 
 #trails_small <- trails[1:5000, ]
 #
 # 3. Create the origin for the Polylines ---------------------------------------
