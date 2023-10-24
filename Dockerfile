@@ -10,7 +10,6 @@ RUN apt-get update && apt-get upgrade -y && \
     libssl-dev \
     libcairo2-dev \
     libsqlite3-dev \
-    libmariadbd-dev \
     libpq-dev \
     libssh2-1-dev \
     unixodbc-dev \
@@ -24,6 +23,7 @@ RUN apt-get update && apt-get upgrade -y && \
     libfontconfig1-dev \
     libjpeg-dev \
     libpng-dev
+
 
 ## update system libraries
 RUN apt-get update && \
