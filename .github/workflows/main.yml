@@ -38,5 +38,5 @@ jobs:
          application_name: salzbike
          environment_name: Salzbike-env
          region: eu-central-1
-         version_label: "salzbike-version-6"
+         
 
