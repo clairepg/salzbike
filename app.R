@@ -93,7 +93,7 @@ plot_month_hikers <- ggplot(months_hikers, aes(x = month)) +
 trails <- st_read("data/Wegenetz/Wegenetz_small.shp") 
 
 #trails_small <- trails[1:5000, ]
-
+#
 # 3. Create the origin for the Polylines ---------------------------------------
 joined_bikers <- trails
 joined_hikers <- trails
