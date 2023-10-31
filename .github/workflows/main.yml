@@ -38,6 +38,6 @@ jobs:
          application_name: salzbike_small
          environment_name: salzbikesmall-env
          region: eu-central-1
-         version:  salzbike_small-version-1
+         version_label:  salzbike_small-version-1
          
 
