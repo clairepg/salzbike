@@ -22,7 +22,7 @@ FROM rocker/shiny
 #    libfribidi-dev \
 #    libfontconfig1-dev \
 #    libjpeg-dev \
-    libpng-dev
+ #   libpng-dev
 #
 
 ## update system libraries
