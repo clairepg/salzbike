@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-
+#
 jobs:
   build_docker_images:
     name: build docker images
@@ -35,9 +35,9 @@ jobs:
         with:
          aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
          aws_secret_key: ${{ secrets.AWS_SECRET_KEY }}
-         application_name: salzbike
-         environment_name: Salzbike-env-1
+         application_name: salzbike_small
+         environment_name: salzbikesmall-env
          region: eu-central-1
-         version:  salzbike-version-6
+         version_label:  "salzbike_small-version-1"
          
 
